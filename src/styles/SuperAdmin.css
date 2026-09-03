@@ -1,0 +1,348 @@
+/* SuperAdmin.css */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* ======================== SHARED PAGE WRAPPER ======================== */
+.sa-page {
+    font-family: 'Outfit', sans-serif;
+    color: #1e293b;
+}
+
+.sa-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.sa-page-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0369a1;
+    letter-spacing: -0.5px;
+}
+
+/* ======================== BUTTONS / LINKS ======================== */
+.sa-btn-primary {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    padding: 11px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+    transition: all 0.25s ease;
+    font-family: 'Outfit', sans-serif;
+}
+
+.sa-btn-primary:hover {
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+    transform: translateY(-1px);
+}
+
+.sa-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ======================== ALERTS ======================== */
+.sa-error {
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.25);
+    color: #dc2626;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 18px;
+}
+
+.sa-loading {
+    color: #64748b;
+    font-size: 14px;
+    padding: 20px 0;
+}
+
+/* ======================== TABLE (Company List) ======================== */
+.sa-table-wrapper {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(3, 105, 161, 0.08);
+    overflow: hidden;
+    border: 1px solid rgba(3, 105, 161, 0.08);
+}
+
+.sa-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sa-table thead {
+    background: linear-gradient(180deg, #ffffff 0%, #e0f2fe 100%);
+}
+
+.sa-table th {
+    text-align: left;
+    padding: 14px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #0369a1;
+    border-bottom: 2px solid rgba(3, 105, 161, 0.12);
+}
+
+.sa-table td {
+    padding: 14px 20px;
+    font-size: 14.5px;
+    color: #334155;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sa-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.sa-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.sa-table tbody tr:hover {
+    background: rgba(135, 206, 235, 0.12);
+}
+
+.sa-id-badge {
+    display: inline-block;
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.sa-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+    font-size: 14.5px;
+}
+
+/* ======================== FORM (Add Company) ======================== */
+.sa-form-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(3, 105, 161, 0.08);
+    border: 1px solid rgba(3, 105, 161, 0.08);
+    padding: 32px;
+    max-width: 560px;
+}
+
+.sa-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.sa-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sa-form-group label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.sa-form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.sa-form-row .sa-form-group {
+    flex: 1;
+}
+
+.sa-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid rgba(3, 105, 161, 0.18);
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14.5px;
+    color: #1e293b;
+    background: #f8fafc;
+    transition: all 0.25s ease;
+    box-sizing: border-box;
+}
+
+.sa-input:focus {
+    outline: none;
+    border-color: #0284c7;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.sa-input::placeholder {
+    color: #94a3b8;
+}
+
+.sa-file-input-wrapper {
+    border: 1.5px dashed rgba(3, 105, 161, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    background: #f8fafc;
+    text-align: center;
+    transition: all 0.25s ease;
+}
+
+.sa-file-input-wrapper:hover {
+    border-color: #0284c7;
+    background: rgba(135, 206, 235, 0.08);
+}
+
+.sa-file-input-wrapper input[type="file"] {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13.5px;
+    color: #334155;
+    width: 100%;
+}
+
+.sa-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+.sa-submit-row {
+    margin-top: 8px;
+}
+
+.sa-submit-row .sa-btn-primary {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+    font-size: 15px;
+}
+
+/* ======================== 1024px ======================== */
+@media (max-width: 1024px) {
+    .sa-form-card {
+        max-width: 100%;
+        padding: 26px;
+    }
+
+    .sa-page-header h2 {
+        font-size: 21px;
+    }
+
+    .sa-table th,
+    .sa-table td {
+        padding: 12px 16px;
+    }
+}
+
+/* ======================== 768px ======================== */
+@media (max-width: 768px) {
+    .sa-form-row {
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .sa-form-card {
+        padding: 22px;
+        border-radius: 14px;
+    }
+
+    .sa-page-header {
+        margin-bottom: 20px;
+    }
+
+    .sa-btn-primary {
+        padding: 10px 16px;
+        font-size: 13.5px;
+    }
+
+    .sa-table th {
+        font-size: 11px;
+        padding: 12px 14px;
+    }
+
+    .sa-table td {
+        font-size: 13.5px;
+        padding: 12px 14px;
+    }
+}
+
+/* ======================== 520px ======================== */
+@media (max-width: 520px) {
+    .sa-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sa-page-header .sa-btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .sa-form-card {
+        padding: 18px;
+    }
+
+    .sa-input {
+        padding: 11px 14px;
+        font-size: 14px;
+    }
+
+    .sa-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .sa-table {
+        min-width: 400px;
+    }
+}
+
+/* ======================== 420px ======================== */
+@media (max-width: 420px) {
+    .sa-page-header h2 {
+        font-size: 19px;
+    }
+
+    .sa-form-card {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .sa-form {
+        gap: 14px;
+    }
+
+    .sa-input {
+        padding: 10px 12px;
+        font-size: 13.5px;
+    }
+
+    .sa-file-input-wrapper {
+        padding: 12px;
+    }
+
+    .sa-submit-row .sa-btn-primary {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+}

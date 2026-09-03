@@ -38,12 +38,18 @@ const Login = () => {
             if (response.ok && data.success) {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("user", JSON.stringify(data.user));
+
+                // role based
+                
                 if (data.user.role === "company") {
                     navigate('/admin');
+                } else if (data.user.role === "superadmin") {
+                    navigate('/superadmin');
                 } else {
                     navigate('/');
-                    alert("Access denied: Only company can login. Please use company credentials.");
+                    alert("Access denied: Unsupported role.");
                 }
+
             } else {
                 setError(data.message || "Login failed");
             }

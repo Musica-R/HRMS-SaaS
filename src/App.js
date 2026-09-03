@@ -23,6 +23,10 @@ import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import AccountDeletion from './pages/AccountDeletion';
+import SuperAdminLayout from './components/SuperAdminLayout';
+import CompanyList from './pages/CompanyList';
+import AddCompany from './pages/AddCompany';
+
 
 function App() {
 
@@ -39,15 +43,17 @@ function App() {
 
           <Route path="/"
             element={token && token !== "undefined" && token !== "null" ?
-              ( user?.role === "company" ?
-                (<Navigate to="/admin" replace />) : (<Login />)
+              (
+                user?.role === "company" ? (<Navigate to="/admin" replace />) :
+                  user?.role === "superadmin" ? (<Navigate to="/superadmin" replace />) :
+                    (<Login />)
               ) : (<Login />)} />
 
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/account-deletion" element={<AccountDeletion />} />
 
-          <Route path="/admin" element={<ProtectedRoute> <AdminLayout /> </ProtectedRoute>}>
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={['company']}> <AdminLayout /> </ProtectedRoute>}>
             <Route index element={<DashboardHome />} />
             <Route path="add-employee" element={<RegistrationForm />} />
             <Route path="add-team" element={<TeamManagement />} />
@@ -64,6 +70,11 @@ function App() {
             <Route path="raise-ticket" element={<RaiseTicket />} />
             <Route path="monthly-report" element={<Montlyreport />} />
             <Route path="settings" element={<Settings />} />
+          </Route>
+
+          <Route path="/superadmin" element={<ProtectedRoute allowedRoles={['superadmin']}> <SuperAdminLayout /> </ProtectedRoute>}>
+            <Route index element={<CompanyList />} />
+            <Route path="add-company" element={<AddCompany />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

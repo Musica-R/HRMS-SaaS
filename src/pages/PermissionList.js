@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fi';
 import Lottie from "lottie-react";
 import animationData from '../LottieFiles/Allow Permission.json';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -65,6 +66,9 @@ function ReasonModal({ text, onClose }) {
 }
 
 export default function PermissionList() {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -115,7 +119,7 @@ export default function PermissionList() {
           Accept: 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, company_id, branch_id }),
       });
       const data = await res.json();
       if (data.success) {
@@ -138,8 +142,8 @@ export default function PermissionList() {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(
-          `${BASE_URL}/premissionlist?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}`
+       const res = await fetch(
+          `${BASE_URL}/premissionlist?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`
         );
         const json = await res.json();
         if (json.success) {
@@ -155,7 +159,7 @@ export default function PermissionList() {
       }
     };
     fetchPermissions();
-  }, [dateFilter]);
+  }, [dateFilter, company_id, branch_id]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';

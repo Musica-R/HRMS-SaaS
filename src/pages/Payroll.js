@@ -4,8 +4,9 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import '../styles/Payroll.css';
 import logo from "../assets/ass.jpeg";
+import { getCompanyBranch } from '../utils/companyContext';
 
-const BASE_URL = 'https://mps.mpdatahub.com/api';
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const today = new Date();
 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -407,7 +408,11 @@ function SummaryCards({ data, period, meta }) {
    MONTHLY PAYROLL TAB
 ───────────────────────────────────────────── */
 function MonthlyPayroll({ employees }) {
+  
+  const { company_id, branch_id } = getCompanyBranch();
+
   const now = new Date();
+
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year, setYear] = useState(String(now.getFullYear()));
   const [list, setList] = useState([]);
@@ -427,7 +432,7 @@ function MonthlyPayroll({ employees }) {
     setMode(null);
     try {
       const res = await fetch(
-        `${BASE_URL}/salary-Slip-List?month=${Number(month)}&year=${Number(year)}`
+        `${BASE_URL}/salary-Slip-List?month=${Number(month)}&year=${Number(year)}&company_id=${company_id}&branch_id=${branch_id}`
       );
       const result = await res.json();
       if (result.success) {
@@ -457,7 +462,7 @@ function MonthlyPayroll({ employees }) {
       const res = await fetch(`${BASE_URL}/salary-generate-month`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: Number(month), year: Number(year) }),
+        body: JSON.stringify({ month: Number(month), year: Number(year), company_id, branch_id }),
       });
       const result = await res.json();
       if (result.success) {
@@ -479,7 +484,7 @@ function MonthlyPayroll({ employees }) {
       const res = await fetch(`${BASE_URL}/salary-slips`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: Number(month), year: Number(year), user_id: emp.user_id }),
+        body: JSON.stringify({ month: Number(month), year: Number(year), user_id: emp.user_id, company_id, branch_id }),
       });
       const result = await res.json();
       if (result.success && result.data?.length > 0) {
@@ -658,6 +663,9 @@ function MonthlyPayroll({ employees }) {
    DAILY PAYROLL TAB
 ───────────────────────────────────────────── */
 function DailyPayroll() {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
   const [date] = useState(todayStr);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -668,7 +676,7 @@ function DailyPayroll() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/salary-generate-day-day?date=${d}`);
+      const res = await fetch(`${BASE_URL}/salary-generate-day-day?date=${d}&company_id=${company_id}&branch_id=${branch_id}`);
       const result = await res.json();
       if (result.success) {
         setData(result.data || []);
@@ -690,7 +698,7 @@ function DailyPayroll() {
     }
   };
 
-  useEffect(() => { fetchDaily(date); }, [date]);
+    useEffect(() => { fetchDaily(date); }, [date, company_id, branch_id]);
 
   return (
     <div className="pay-content">
@@ -763,16 +771,20 @@ function DailyPayroll() {
    ROOT COMPONENT
 ───────────────────────────────────────────── */
 export default function Payroll() {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
+
   const [activeTab, setActiveTab] = useState('daily');
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/employee-List`)
+    fetch(`${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}`)
       .then(r => r.json())
       .then(res => { if (res.success) setEmployees(res.data || []); })
       .catch(() => { });
-  }, []);
-
+  }, [company_id, branch_id]);
+  
   return (
     <div className="pay-page">
       <div className="pay-header">

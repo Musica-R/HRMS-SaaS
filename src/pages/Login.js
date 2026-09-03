@@ -5,6 +5,7 @@ import animationData from '../LottieFiles/App login.json';
 import womanImg from '../assets/women with tab 1.png';
 import '../styles/Login.css';
 
+
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const Login = () => {
@@ -37,11 +38,11 @@ const Login = () => {
             if (response.ok && data.success) {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("user", JSON.stringify(data.user));
-                if (data.user.role_id === 1) {
+                if (data.user.role === "company") {
                     navigate('/admin');
                 } else {
                     navigate('/');
-                    alert("Access denied: Only admin can login. Please use admin credentials.")
+                    alert("Access denied: Only company can login. Please use company credentials.");
                 }
             } else {
                 setError(data.message || "Login failed");

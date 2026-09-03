@@ -5,10 +5,14 @@ import { MdOutlineFolderOpen, MdOutlineEdit } from 'react-icons/md';
 import { FiUsers, FiCalendar, FiUser, FiCheckCircle } from 'react-icons/fi';
 import { createPortal } from 'react-dom';
 // import { GrEdit } from "react-icons/gr";
+import { getCompanyBranch } from '../utils/companyContext';
 
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://mps.mpdatahub.com/api';
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 
 const CreateProject = () => {
+
+    const { company_id, branch_id } = getCompanyBranch();
 
     const [formData, setFormData] = useState({
         project_name: '',
@@ -42,7 +46,7 @@ const CreateProject = () => {
     useEffect(() => {
         const fetchTeams = async () => {
             try {
-                const response = await fetch(`${BASE_URL}/teams/team-list`, {
+                const response = await fetch(`${BASE_URL}/teams/team-list?company_id=${company_id}&branch_id=${branch_id}`, {
                     headers: getAuthHeaders(),
                 });
                 const result = await response.json();
@@ -55,7 +59,7 @@ const CreateProject = () => {
             }
         };
         fetchTeams();
-    }, []);
+    }, [company_id, branch_id]);
 
     /* ================= FETCH PROJECTS ================= */
     useEffect(() => {
@@ -63,7 +67,7 @@ const CreateProject = () => {
         const fetchProjects = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`${BASE_URL}/project/list?team_id=${teamFilter}`, {
+                const response = await fetch(`${BASE_URL}/project/list?team_id=${teamFilter}&company_id=${company_id}&branch_id=${branch_id}`, {
                     headers: getAuthHeaders(),
                 });
                 const result = await response.json();
@@ -76,7 +80,7 @@ const CreateProject = () => {
             }
         };
         fetchProjects();
-    }, [teamFilter, activeForm, editForm]);
+    }, [teamFilter, activeForm, editForm, company_id, branch_id]);
 
     /* ================= HANDLE INPUT ================= */
     const handleChange = (e) => {
@@ -111,12 +115,17 @@ const CreateProject = () => {
             if (formData[key] !== '') submitData.append(key, formData[key]);
         });
 
+        submitData.append('company_id', company_id);
+        submitData.append('branch_id', branch_id);
+
         try {
+
             const response = await fetch(`${BASE_URL}/project/create`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: submitData,
             });
+
             const result = await response.json();
             if (response.ok) {
                 alert(result.message || 'Project created successfully!');
@@ -142,6 +151,8 @@ const CreateProject = () => {
         submitData.append('description', editData.description);
         submitData.append('team_id', editData.team_id);
         submitData.append('status', editData.status);
+        submitData.append('company_id', company_id);
+        submitData.append('branch_id', branch_id);
 
         try {
             const response = await fetch(`${BASE_URL}/project/update/${editData.id}`, {
@@ -149,7 +160,7 @@ const CreateProject = () => {
                 headers: getAuthHeaders(),
                 body: submitData,
             });
-            
+
             const result = await response.json();
             if (response.ok) {
                 alert(result.message || 'Project updated successfully!');

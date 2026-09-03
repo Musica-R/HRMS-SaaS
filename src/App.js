@@ -39,7 +39,7 @@ function App() {
 
           <Route path="/"
             element={token && token !== "undefined" && token !== "null" ?
-              (user?.role_id === 1 ?
+              ( user?.role === "company" ?
                 (<Navigate to="/admin" replace />) : (<Login />)
               ) : (<Login />)} />
 

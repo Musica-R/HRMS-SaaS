@@ -4,10 +4,14 @@ import * as XLSX from "xlsx-js-style";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "../styles/MonthlyReport.css";
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 export default function MonthlyReport() {
+
+    const { company_id, branch_id } = getCompanyBranch();
+
     const navigate = useNavigate();
     const location = useLocation();
     const selectedEmployee = location.state?.selectedEmployee;
@@ -33,8 +37,8 @@ export default function MonthlyReport() {
             try {
                 const url =
                     userType === "intern_present" || userType === "intern_absent"
-                        ? `${BASE_URL}/employee-List-roles`
-                        : `${BASE_URL}/employee-List`;
+                        ? `${BASE_URL}/employee-List-roles?company_id=${company_id}&branch_id=${branch_id}`
+                        : `${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}`;
 
                 const res = await fetch(url);
                 const data = await res.json();
@@ -48,15 +52,16 @@ export default function MonthlyReport() {
         };
 
         fetchEmployees();
-    }, [userType]);
+    }, [userType, company_id, branch_id]);
 
-    
+
     const fetchMonthlyReport = useCallback(async () => {
         if (!selectedUser) return alert("Select Employee");
 
         try {
-            const res = await fetch(
-                `${BASE_URL}/get-Monthly-Summary?user_id=${selectedUser}&month=${month}&year=${year}`
+
+             const res = await fetch(
+                `${BASE_URL}/get-Monthly-Summary?user_id=${selectedUser}&month=${month}&year=${year}&company_id=${company_id}&branch_id=${branch_id}`
             );
 
             const data = await res.json();
@@ -82,7 +87,7 @@ export default function MonthlyReport() {
         } catch (err) {
             console.error(err);
         }
-    }, [selectedUser, month, year]);
+    }, [selectedUser, month, year, company_id, branch_id]);
 
     const formatTotalLateTime = (timeStr) => {
         if (!timeStr || timeStr === "00:00") return "-";
@@ -328,10 +333,10 @@ export default function MonthlyReport() {
     };
 
     useEffect(() => {
-    if (selectedUser) {
-        fetchMonthlyReport();
-    }
-}, [selectedUser, fetchMonthlyReport]);
+        if (selectedUser) {
+            fetchMonthlyReport();
+        }
+    }, [selectedUser, fetchMonthlyReport]);
 
     return (
         <div className="monthly-container">

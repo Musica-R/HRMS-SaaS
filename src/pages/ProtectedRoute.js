@@ -8,7 +8,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
-  if (user?.role_id !== 1) {
+  if (user?.role !== "company") {
     return <Navigate to="/" replace />;
   }
 

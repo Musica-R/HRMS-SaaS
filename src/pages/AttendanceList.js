@@ -12,12 +12,15 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const AttendanceList = () => {
 
   const navigate = useNavigate();
+
+  const { company_id, branch_id } = getCompanyBranch();
 
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,23 +58,23 @@ const AttendanceList = () => {
 
         switch (userType) {
           case 'emp_present':
-            url = `${BASE_URL}/attendance-list?date=${dateFilter}`;
+            url = `${BASE_URL}/attendance-list?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
             break;
 
           case 'intern_present':
-            url = `${BASE_URL}/attendance-list-intern?date=${dateFilter}`;
+            url = `${BASE_URL}/attendance-list-intern?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
             break;
 
           case 'emp_absent':
-            url = `${BASE_URL}/attendance-List-absent?date=${dateFilter}`;
+            url = `${BASE_URL}/attendance-List-absent?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
             break;
 
           case 'intern_absent':
-            url = `${BASE_URL}/attendance-List-absentinten?date=${dateFilter}`;
+            url = `${BASE_URL}/attendance-List-absentinten?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
             break;
 
           default:
-            url = `${BASE_URL}/attendance-list?date=${dateFilter}`;
+            url = `${BASE_URL}/attendance-list?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
         }
         const response = await fetch(url);
 
@@ -98,7 +101,7 @@ const AttendanceList = () => {
       clearTimeout(timeoutId);
     };
 
-  }, [dateFilter, userType]);
+  }, [dateFilter, userType, company_id, branch_id]);
 
   const getReportTitle = () => {
     switch (userType) {
@@ -153,10 +156,12 @@ const AttendanceList = () => {
   const handleGenerateExport = async () => {
     setExportLoading(true);
     setExportGenerated(false);
+    
     try {
       const res = await fetch(
-        `${BASE_URL}/attendance-List-date?start_date=${exportStartDate}&end_date=${exportEndDate}`
+        `${BASE_URL}/attendance-List-date?start_date=${exportStartDate}&end_date=${exportEndDate}&company_id=${company_id}&branch_id=${branch_id}`
       );
+
       const result = await res.json();
       if (result.success && result.data) {
         setExportData(result.data);

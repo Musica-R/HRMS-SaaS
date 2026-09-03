@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { FiHome, FiLogOut, FiCalendar, FiUsers, FiMenu, FiX, FiFileText, FiShield } from 'react-icons/fi';
 import '../styles/AdminLayout.css';
@@ -10,10 +10,29 @@ import { MdOutlineFolderCopy } from "react-icons/md";
 import { MdOutlineAddTask } from "react-icons/md";
 import logo from "../assets/ass.jpeg";
 import { BsCurrencyDollar } from "react-icons/bs";
+import { getCompanyBranch, setCompanyBranch } from '../utils/companyContext';
 
 const AdminLayout = () => {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    const { company_id, branch_id } = getCompanyBranch();
+    const [branches, setBranches] = useState([]);
+
+    useEffect(() => {
+        if (!company_id) return;
+        const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+        fetch(`${BASE_URL}/get-branch-for-company?company_id=${company_id}`)
+            .then(res => res.json())
+            .then(json => {
+                if (json.success) setBranches(json.data);
+            })
+            .catch(err => console.error('Failed to load branches', err));
+    }, [company_id]);
+
+    const handleBranchChange = (e) => {
+        setCompanyBranch({ company_id, branch_id: e.target.value });
+    };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -27,21 +46,16 @@ const AdminLayout = () => {
         <div className="admin-layout">
 
             {/* Mobile top bar */}
-
             <div className="mobile-topbar">
-
                 <button className="hamburger-btn" onClick={() => setSidebarOpen(true)}>
                     <FiMenu />
                 </button>
-
                 <div className="brand-section">
                     <img src={logo} alt="Logo" className="brand-logo" />
                     <h2 className="mobile-brand">Admin Panel</h2>
                 </div>
-
             </div>
 
-            {/* Overlay for mobile sidebar list*/}
             {sidebarOpen && (
                 <div className="sidebar-overlay" onClick={closeSidebar} />
             )}
@@ -49,20 +63,32 @@ const AdminLayout = () => {
             <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
 
                 <div className="sidebar-header">
-
                     <div className="brand-section">
                         <img src={logo} alt="Logo" className="brand-logo" />
                         <h2>Admin Panel</h2>
                     </div>
-
                     <button className="sidebar-close-btn" onClick={closeSidebar}>
                         <FiX />
                     </button>
+                </div>
 
+                {/* Branch Switcher */}
+
+                <div className="branch-switcher">
+                    <label>Branch</label>
+                    <select
+                        className="branch-select"
+                        value={branch_id || ''}
+                        onChange={handleBranchChange}
+                    >
+                        <option value="" disabled>Select Branch</option>
+                        {branches.map((b) => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                    </select>
                 </div>
 
                 <nav className="sidebar-nav">
-
                     <NavLink to="/admin" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <FiHome className="nav-icon" /><span>Dashboard</span>
                     </NavLink>
@@ -73,14 +99,6 @@ const AdminLayout = () => {
 
                     <NavLink to="/admin/attendance" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <FiCalendar className="nav-icon" /> <span>Attendance List</span>
-                    </NavLink>
-
-                    <NavLink to="/admin/pro-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <MdOutlineFolderCopy className="nav-icon" /> <span>Create Project</span>
-                    </NavLink>
-
-                    <NavLink to="/admin/task-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <MdOutlineAddTask className="nav-icon" /> <span>Task Status Panel</span>
                     </NavLink>
 
                     <NavLink to="/admin/leave-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
@@ -117,26 +135,12 @@ const AdminLayout = () => {
                         <FiLogOut className="nav-icon" /><span>Logout</span>
                     </button>
                 </div>
-                
+
             </aside>
 
             <main className="main-content">
                 <Outlet />
             </main>
-
-            {/* <div className="content-area">
-
-                <header className="content-header">
-                    <button onClick={handleLogout} className="top-logout-btn">
-                        Logout
-                    </button>
-                </header>
-
-                <main className="main-content">
-                    <Outlet />
-                </main>
-
-            </div> */}
 
         </div>
     );

@@ -6,6 +6,7 @@ import { IoAdd } from 'react-icons/io5';
 import { MdDeleteOutline } from 'react-icons/md';
 import { FaRegBell, FaThList } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -25,6 +26,8 @@ const MONTH_NAMES = [
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const HolidayForm = () => {
+  
+  const { company_id, branch_id } = getCompanyBranch();
   const [formData, setFormData] = useState({ title: '', holiday_date: '', description: '', type: '' });
 
   const now = new Date();
@@ -54,8 +57,10 @@ const HolidayForm = () => {
     setLoading(true);
     const fetchHolidays = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/holiday/list?month=${dateFilter.month}&year=${dateFilter.year}`);
+
+        const response = await fetch(`${BASE_URL}/holiday/list?month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`);
         const result = await response.json();
+
         if (result.success) setHolidays(result.data);
         else setHolidays([]);
       } catch (error) {
@@ -66,7 +71,7 @@ const HolidayForm = () => {
       }
     };
     fetchHolidays();
-  }, [activeForm, deleteId, dateFilter]);
+  }, [activeForm, deleteId, dateFilter, company_id, branch_id]);
 
   /* ── Build holiday map keyed by day number ── */
   const holidayMap = {};
@@ -106,6 +111,8 @@ const HolidayForm = () => {
     Object.keys(formData).forEach(key => {
       if (formData[key] !== null) submitData.append(key, formData[key]);
     });
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
     try {
       const response = await fetch(`${BASE_URL}/holiday/create`, { method: 'POST', body: submitData });
       const result = await response.json();
@@ -125,8 +132,10 @@ const HolidayForm = () => {
   const handleDelete = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BASE_URL}/delete-Holiday/${deleteId}`);
+
+      const response = await fetch(`${BASE_URL}/delete-Holiday/${deleteId}?company_id=${company_id}&branch_id=${branch_id}`);
       const result = await response.json();
+
       if (response.ok) alert(result.message || 'Holiday Deleted successfully!');
       else alert('Failed to Delete Holiday: ' + (result.message || 'Unknown error'));
     } catch (error) {
@@ -140,6 +149,8 @@ const HolidayForm = () => {
     e.preventDefault();
     const submitData = new FormData();
     submitData.append('id', notificationId);
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
     try {
       const response = await fetch(`${BASE_URL}/send-holiday-notification`, { method: 'POST', body: submitData });
       const result = await response.json();
@@ -284,7 +295,7 @@ const HolidayForm = () => {
                   if (dayHols.length === 1) setTooltipHoliday(dayHols[0]);
                   else if (dayHols.length > 1) setTooltipHoliday(dayHols[0]);
                 }}
-               title={dayHols.map(h => `${h.title} - ${formatDate(h.holiday_date)}`).join(', ')}
+                title={dayHols.map(h => `${h.title} - ${formatDate(h.holiday_date)}`).join(', ')}
               >
                 <span className={`hol-cal-num ${today ? 'hol-cal-num--today' : ''}`}>
                   {cell.day}
@@ -401,7 +412,7 @@ const HolidayForm = () => {
                         <div className="hol-card-accent" style={{ background: `linear-gradient(90deg, ${cfg.color}, ${cfg.border})` }} />
                         <div className="hol-card-top">
                           <div className="hol-card-badge" style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}>
-                           {formatDate(data.holiday_date)}
+                            {formatDate(data.holiday_date)}
                           </div>
                           <div className="hol-card-actions">
                             <button className="hca-btn send" onClick={() => setNotificationId(data.id)} title="Send notification">

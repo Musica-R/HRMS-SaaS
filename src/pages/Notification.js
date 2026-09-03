@@ -6,10 +6,15 @@ import { IoAdd } from 'react-icons/io5';
 import { MdDeleteOutline } from 'react-icons/md';
 import { FaRegBell } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
+import { getCompanyBranch } from '../utils/companyContext';
+
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const Notification = () => {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
   const [formData, setFormData] = useState({
     title: '',
     type: '',
@@ -39,8 +44,10 @@ const Notification = () => {
   useEffect(() => {
     const fetchNotification = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/notifications?month=${month}&year=${year}`);
+
+        const response = await fetch(`${BASE_URL}/notifications?month=${month}&year=${year}&company_id=${company_id}&branch_id=${branch_id}`);
         const result = await response.json();
+
         if (result.success) setNotification(result.data);
       } catch (error) {
         console.error('Error fetching Notifications:', error);
@@ -49,7 +56,7 @@ const Notification = () => {
       }
     };
     fetchNotification();
-  }, [activeForm, deleteId, month, year]);
+  }, [activeForm, deleteId, month, year, company_id, branch_id]);
 
   /* ================= HANDLE INPUT ================= */
   const handleChange = (e) => {
@@ -64,6 +71,8 @@ const Notification = () => {
     Object.keys(formData).forEach((key) => {
       if (formData[key] !== null) submitData.append(key, formData[key]);
     });
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
     try {
       const response = await fetch(`${BASE_URL}/notification/create`, { method: 'POST', body: submitData });
       const result = await response.json();
@@ -87,8 +96,10 @@ const Notification = () => {
     const submitData = new FormData();
     submitData.append('id', deleteId);
     try {
-      const response = await fetch(`${BASE_URL}/notification-delete?id=${deleteId}`);
+
+      const response = await fetch(`${BASE_URL}/notification-delete?id=${deleteId}&company_id=${company_id}&branch_id=${branch_id}`);
       const result = await response.json();
+
       if (response.ok) {
         alert(result.message || 'Notification Deleted successfully!');
       } else {
@@ -107,6 +118,8 @@ const Notification = () => {
     e.preventDefault();
     const submitData = new FormData();
     submitData.append('id', notificationId);
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
     try {
       const response = await fetch(`${BASE_URL}/notification/send`, { method: 'POST', body: submitData });
       const result = await response.json();
@@ -135,7 +148,7 @@ const Notification = () => {
     );
   }
 
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   return (
     <div className="notif-page fade-in-up">
@@ -146,7 +159,7 @@ const Notification = () => {
         <div className="notif-hero-inner">
           <div className="notif-hero-lottie">
             {/* <Lottie options={defaultOptions} height={64} width={64} /> */}
-              <Lottie animationData={animationData} style={{ width: "64px", height: "64px" }} />
+            <Lottie animationData={animationData} style={{ width: "64px", height: "64px" }} />
           </div>
           <div className="notif-hero-text">
             <h1>Notifications</h1>
@@ -163,7 +176,7 @@ const Notification = () => {
       <div className="notif-toolbar">
         <div className="notif-filters">
           <div className="filter-chip">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
             <select value={month} onChange={(e) => setMonth(e.target.value)}>
               {monthNames.map((m, i) => (
                 <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
@@ -171,7 +184,7 @@ const Notification = () => {
             </select>
           </div>
           <div className="filter-chip">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             <input
               type="number"
               value={year}

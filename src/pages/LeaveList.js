@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiX,
 } from 'react-icons/fi';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -82,6 +83,11 @@ function ReasonModal({ text, onClose }) {
 }
 
 export default function LeaveList() {
+
+  /* ───────── Company/Branch context ───────── */
+  
+  const { company_id, branch_id } = getCompanyBranch();
+
   const [leaves, setLeaves] = useState([]);
   const [meta, setMeta] = useState({ month: '', total: 0 });
   const [loading, setLoading] = useState(true);
@@ -127,7 +133,7 @@ export default function LeaveList() {
         setLoading(true);
         setError(null);
         const res = await fetch(
-          `${BASE_URL}/leave-list?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}`
+          `${BASE_URL}/leave-list?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`
         );
         const json = await res.json();
         if (json.success) {
@@ -143,7 +149,7 @@ export default function LeaveList() {
       }
     };
     fetchLeaves();
-  }, [dateFilter]);
+  }, [dateFilter, company_id, branch_id]);
 
   const updateStatus = async (leaveId, newStatus) => {
     if (updatingId) return;
@@ -157,7 +163,7 @@ export default function LeaveList() {
           Accept: 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ leave_id: leaveId, status: newStatus }),
+        body: JSON.stringify({ leave_id: leaveId, status: newStatus, company_id, branch_id }),
       });
       const data = await res.json();
       if (res.ok && data.success) {

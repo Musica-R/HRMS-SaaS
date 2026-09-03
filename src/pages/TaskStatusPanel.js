@@ -4,10 +4,11 @@ import { FaUserTie, FaUsers } from "react-icons/fa6";
 import { FiClock, FiRefreshCw, FiCheckCircle, FiWatch, FiPauseCircle } from "react-icons/fi";
 import { GoTasklist } from "react-icons/go";
 import { HiUserGroup } from "react-icons/hi2";
+import { getCompanyBranch } from '../utils/companyContext';
 
 /* ── API endpoints ──────────────────────────────────────────────── */
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-const TASK_API = "https://mps.mpdatahub.com/api";
+const TASK_API = process.env.REACT_APP_API_BASE_URL;
 
 /* ── Lookup tables ──────────────────────────────────────────────── */
 const STATUS_META = {
@@ -155,7 +156,7 @@ function SummaryBar({ s, onFilter, active }) {
 
             <div
                 className={`tsp-summary-item tsp-stat-inprogress ${active === "in-progress" ? "active" : ""}`}
-               onClick={() => onFilter("in-progress")}
+                onClick={() => onFilter("in-progress")}
             >
                 <span className="tsp-summary-num">{s.in_progress ?? 0}</span>
                 <span className="tsp-summary-lbl">In Progress</span>
@@ -289,6 +290,9 @@ function SectionBlock({ icon, title, headerCls, badgeCls, tasks }) {
 
 /* ── Main Component ──────────────────────────────────────────────── */
 export default function TaskStatusPanel() {
+   
+    const { company_id, branch_id } = getCompanyBranch();
+
     const [teams, setTeams] = useState([]);
     const [selectedTeam, setSelectedTeam] = useState("");
     const [taskData, setTaskData] = useState(null);
@@ -307,16 +311,17 @@ export default function TaskStatusPanel() {
         const load = async () => {
             setTeamsLoading(true);
             try {
-                const res = await fetch(`${BASE_URL}/teams/team-list`);
+                const res = await fetch(`${BASE_URL}/teams/team-list?company_id=${company_id}&branch_id=${branch_id}`);
                 const json = await res.json();
                 if (json.success) setTeams(json.data);
             } catch (err) { console.error("Teams fetch error:", err); }
             setTeamsLoading(false);
         };
         load();
-    }, []);
+    }, [company_id, branch_id]);
 
     /* Fetch tasks whenever team changes */
+
     useEffect(() => {
         if (!selectedTeam) { setTaskData(null); return; }
 
@@ -325,14 +330,14 @@ export default function TaskStatusPanel() {
         const load = async () => {
             setTasksLoading(true);
             try {
-                const res = await fetch(`${TASK_API}/task-List-ByTeam?team_id=${selectedTeam}`);
+                const res = await fetch(`${TASK_API}/task-List-ByTeam?team_id=${selectedTeam}&company_id=${company_id}&branch_id=${branch_id}`);
                 const json = await res.json();
                 if (json.success) setTaskData(json);
             } catch (err) { console.error("Tasks fetch error:", err); }
             setTasksLoading(false);
         };
         load();
-    }, [selectedTeam]);
+    }, [selectedTeam, company_id, branch_id]);
 
     return (
         <div className="tsp-page">

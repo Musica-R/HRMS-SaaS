@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/RegistrationForm.css';
 import AdminHeader from './AdminHeader';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const RegistrationForm = () => {
+
+  const { company_id: adminCompanyId, branch_id: adminBranchId } = getCompanyBranch();
+
+  const token = localStorage.getItem('token');
+
   const [formData, setFormData] = useState({
     name: '',
     empid: '',
@@ -12,7 +18,6 @@ const RegistrationForm = () => {
     mobile: '',
     password: '',
     c_password: '',
-    company_id: '',
     branch_id: '',
     address: '',
     position: '',
@@ -32,12 +37,12 @@ const RegistrationForm = () => {
   });
 
 
-  
-  const [companies, setCompanies] = useState([]);
+
+
   const [branches, setBranches] = useState([]);
   const [roles, setRoles] = useState([]);
 
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
+
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
@@ -46,29 +51,6 @@ const RegistrationForm = () => {
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
 
-  /* ================= FETCH COMPANIES ================= */
-
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      setLoadingCompanies(true);
-
-      try {
-        const response = await fetch(
-          `${BASE_URL}/list-company`
-        );
-        const result = await response.json();
-        if (result.success) {
-          setCompanies(result.data);
-        }
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-      }
-      setLoadingCompanies(false);
-    };
-
-    fetchCompanies();
-  }, []);
-
   /* ================= FETCH ROLES ================= */
 
   useEffect(() => {
@@ -76,7 +58,7 @@ const RegistrationForm = () => {
       setLoadingRoles(true);
 
       try {
-        const response = await fetch(`${BASE_URL}/roles`);
+        const response = await fetch(`${BASE_URL}/roles?company_id=${adminCompanyId}&branch_id=${adminBranchId}`);
         const result = await response.json();
 
         if (result.success) {
@@ -90,24 +72,20 @@ const RegistrationForm = () => {
     };
 
     fetchRoles();
-  }, []);
+  }, [adminCompanyId, adminBranchId]);
 
   /* ================= FETCH BRANCHES ================= */
 
   useEffect(() => {
-    if (formData.company_id) {
+    if (adminCompanyId) {
       const fetchBranches = async () => {
         setLoadingBranches(true);
-
         try {
           const response = await fetch(
-            `${BASE_URL}/get-branch-for-company?company_id=${formData.company_id}`
+            `${BASE_URL}/get-branch-for-company?company_id=${adminCompanyId}`
           );
-
           const result = await response.json();
-
           if (result.success) {
-            console.log(result);
             setBranches(result.data);
           } else {
             setBranches([]);
@@ -116,15 +94,13 @@ const RegistrationForm = () => {
           console.error('Error fetching branches:', error);
           setBranches([]);
         }
-
         setLoadingBranches(false);
       };
-
       fetchBranches();
     } else {
       setBranches([]);
     }
-  }, [formData.company_id]);
+  }, [adminCompanyId]);
 
 
 
@@ -134,7 +110,7 @@ const RegistrationForm = () => {
 
       try {
         const response = await fetch(
-          `${BASE_URL}/teams/team-list`
+          `${BASE_URL}/teams/team-list?company_id=${adminCompanyId}&branch_id=${adminBranchId}`
         );
         const result = await response.json();
 
@@ -149,7 +125,8 @@ const RegistrationForm = () => {
     };
 
     fetchTeams();
-  }, []);
+
+  }, [adminCompanyId, adminBranchId]);
 
   /* ================= HANDLE INPUT ================= */
 
@@ -157,16 +134,9 @@ const RegistrationForm = () => {
     const { name, value, type, files } = e.target;
 
     if (type === 'file') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: files[0],
-      }));
+      setFormData((prev) => ({ ...prev, [name]: files[0] }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        ...(name === 'company_id' ? { branch_id: '' } : {}),
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -190,11 +160,18 @@ const RegistrationForm = () => {
       }
     });
 
+    submitData.append('company_id', adminCompanyId);
+    submitData.append('created_by_company_id', adminCompanyId);
+    submitData.append('created_by_branch_id', adminBranchId);
+
     try {
       const response = await fetch(`${BASE_URL}/add-user`, {
-        method: 'POST',
-        body: submitData,
-      });
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+  body: submitData,
+});
 
       const result = await response.json();
 
@@ -209,7 +186,6 @@ const RegistrationForm = () => {
           mobile: '',
           password: '',
           c_password: '',
-          company_id: '',
           branch_id: '',
           address: '',
           position: '',
@@ -235,7 +211,7 @@ const RegistrationForm = () => {
 
           alert(errorMessages);
         } else {
-          alert('Registration failed');
+          alert(result.message || 'Registration failed');
         }
       }
     } catch (error) {
@@ -384,7 +360,7 @@ const RegistrationForm = () => {
 
             {/* COMPANY */}
 
-            <div className="form-groups">
+            {/* <div className="form-groups">
               <label>Company</label>
 
               <select
@@ -403,7 +379,7 @@ const RegistrationForm = () => {
                   </option>
                 ))}
               </select>
-            </div>
+            </div> */}
 
             {/* BRANCH */}
 
@@ -414,7 +390,7 @@ const RegistrationForm = () => {
                 name="branch_id"
                 value={formData.branch_id}
                 onChange={handleChange}
-                disabled={!formData.company_id}
+                // disabled={!formData.company_id}
                 required
               >
                 <option value="">

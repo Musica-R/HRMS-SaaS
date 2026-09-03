@@ -4,6 +4,7 @@ import { FiEdit2, FiX, FiSave, FiSearch, FiChevronDown } from 'react-icons/fi';
 import Lottie from "lottie-react";
 import animationData from '../LottieFiles/Employee Search.json';
 import { useNavigate } from "react-router-dom";
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -13,10 +14,14 @@ const INACTIVE_URL = `${BASE_URL}/employees/inactive`;
 const INTERN_ACTIVE_URL = `${BASE_URL}/employee-List-roles`;
 const INTERN_INACTIVE_URL = `${BASE_URL}/employees/inactive/roles`;
 const DELETE_URL = `${BASE_URL}/remove-user`;
-const TEAM_LIST_URL = 'https://mps.mpdatahub.com/api/teams/team-list';
-const TEAM_BY_ID_URL = 'https://mps.mpdatahub.com/api/team-by-id';
+const TEAM_LIST_URL = `${BASE_URL}/teams/team-list`;
+const TEAM_BY_ID_URL = `${BASE_URL}/team-by-id`;
 
 export default function EmpList() {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
+
   /* ───────── Employee lists ───────── */
   const [employees, setEmployees] = useState([]);
   const [inactiveEmployees, setInactiveEmployees] = useState([]);
@@ -56,20 +61,13 @@ export default function EmpList() {
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
-  /* ───────── Lottie ───────── */
-  // const defaultOptions = {
-  //   loop: true,
-  //   autoplay: true,
-  //   animationData,
-  //   rendererSettings: { preserveAspectRatio: 'xMidYMid slice' },
-  // };
-
+  
   /* ═══════════════════════════════════════════
      FETCH HELPERS
   ═══════════════════════════════════════════ */
   const fetchEmployees = async () => {
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(`${API_URL}?company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) setEmployees(json.data);
     } catch (err) { console.log(err); }
@@ -78,7 +76,7 @@ export default function EmpList() {
 
   const fetchInactiveEmployees = async () => {
     try {
-      const res = await fetch(INACTIVE_URL);
+      const res = await fetch(`${INACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) setInactiveEmployees(json.data);
     } catch (err) { console.log(err); }
@@ -87,7 +85,7 @@ export default function EmpList() {
 
   const fetchActiveInterns = async () => {
     try {
-      const res = await fetch(INTERN_ACTIVE_URL);
+      const res = await fetch(`${INTERN_ACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) setActiveInterns(json.data);
     } catch (err) { console.log(err); }
@@ -95,7 +93,7 @@ export default function EmpList() {
 
   const fetchInactiveInterns = async () => {
     try {
-      const res = await fetch(INTERN_INACTIVE_URL);
+      const res = await fetch(`${INTERN_INACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) setInactiveInterns(json.data);
     } catch (err) { console.log(err); }
@@ -103,7 +101,7 @@ export default function EmpList() {
 
   const fetchTeamList = async () => {
     try {
-      const res = await fetch(TEAM_LIST_URL);
+      const res = await fetch(`${TEAM_LIST_URL}?company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) setTeamList(json.data);
     } catch (err) { console.log(err); }
@@ -112,7 +110,7 @@ export default function EmpList() {
   const fetchTeamById = async (teamId) => {
     setTeamLoading(true);
     try {
-      const res = await fetch(`${TEAM_BY_ID_URL}?team_id=${teamId}`);
+      const res = await fetch(`${TEAM_BY_ID_URL}?team_id=${teamId}&company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) setTeamMembers(json.data);
       else setTeamMembers([]);
@@ -138,26 +136,22 @@ export default function EmpList() {
     fetchActiveInterns();
     fetchInactiveInterns();
     fetchTeamList();
-  }, []);
+  }, [company_id, branch_id]);
 
   useEffect(() => {
     const fetchRoles = async () => {
       setLoadingRoles(true);
       try {
-        const response = await fetch('https://mps.mpdatahub.com/api/roles');
+        const response = await fetch(`${BASE_URL}/roles?company_id=${company_id}&branch_id=${branch_id}`);
         const result = await response.json();
-
-        if (result.success) {
-          setRoles(result.data);
-        }
+        if (result.success) setRoles(result.data);
       } catch (error) {
         console.error('Error fetching roles:', error);
       }
       setLoadingRoles(false);
     };
-
     fetchRoles();
-  }, []);
+  }, [company_id, branch_id]);
 
   /* ───────── Team selection change ───────── */
   const handleTeamChange = (e) => {
@@ -184,7 +178,7 @@ export default function EmpList() {
     setDeleteId(null);
     try {
       setLoading(true);
-      const res = await fetch(`${DELETE_URL}?id=${id}`);
+      const res = await fetch(`${DELETE_URL}?id=${id}&company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) refreshAll();
     } catch (err) { console.log(err); }
@@ -197,7 +191,7 @@ export default function EmpList() {
   const updateEmployeeStatus = async (id, status) => {
     try {
       setLoading(true);
-      const res = await fetch(`${BASE_URL}/update-Employee-Status?user_id=${id}&status=${status}`);
+      const res = await fetch(`${BASE_URL}/update-Employee-Status?user_id=${id}&status=${status}&company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) refreshAll();
     } catch (err) { console.log(err); }
@@ -248,6 +242,8 @@ export default function EmpList() {
       const formData = new FormData();
       const toHMS = (t) => (!t ? '' : t.length === 8 ? t : t + ':00');
       formData.append('id', editData.id);
+      formData.append('company_id', company_id);
+      formData.append('branch_id', branch_id);
       if (editData.name) formData.append('name', editData.name);
       if (editData.empid) formData.append('empid', editData.empid);
       if (editData.email) formData.append('email', editData.email);
@@ -300,10 +296,10 @@ export default function EmpList() {
     setPwdSendError('');
     setPwdSendSuccess('');
     try {
-      const res = await fetch('https://mps.mpdatahub.com/api/forgot-Password', {
+      const res = await fetch(`${BASE_URL}/forgot-Password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: pwdEmail }),
+        body: JSON.stringify({ email: pwdEmail, company_id, branch_id }),
       });
       const json = await res.json();
       if (json.success) {

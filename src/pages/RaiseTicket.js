@@ -5,10 +5,14 @@ import animationData from '../LottieFiles/Ticket.json';
 import { IoAdd } from 'react-icons/io5';
 import { createPortal } from 'react-dom';
 import { FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const RaiseTicket = () => {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
   const [formData, setFormData] = useState({
     user_id: '',
     date: '',
@@ -105,7 +109,7 @@ const RaiseTicket = () => {
   const fetchEmployees = async () => {
     try {
       setLoadingEmployees(true);
-      const res = await fetch(`${BASE_URL}/employee-List`);
+      const res = await fetch(`${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}`);
       const json = await res.json();
       if (json.success) {
         setEmployees(json.data);
@@ -122,7 +126,7 @@ const RaiseTicket = () => {
     const fetchRaiseTicket = async () => {
       try {
         const response = await fetch(
-          `${BASE_URL}/tickets?month=${dateFilter.month}&year=${dateFilter.year}`
+          `${BASE_URL}/tickets?month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`
         );
         const result = await response.json();
         if (result.success) {
@@ -136,7 +140,8 @@ const RaiseTicket = () => {
     };
     fetchRaiseTicket();
     fetchEmployees();
-  }, [activeForm, deleteId, dateFilter, updatingId]);
+
+  }, [activeForm, deleteId, dateFilter, updatingId, company_id, branch_id]);
 
   /* ================= HANDLE INPUT ================= */
   const handleChange = (e) => {
@@ -158,6 +163,10 @@ const RaiseTicket = () => {
         submitData.append(key, formData[key]);
       }
     });
+
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
+
     try {
       const response = await fetch(`${BASE_URL}/ticket/create`, {
         method: 'POST',
@@ -184,6 +193,8 @@ const RaiseTicket = () => {
     const submitData = new FormData();
     submitData.append('id', id);
     submitData.append('status', status);
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
     if (updatingId) return;
     try {
       setUpdatingId(id);
@@ -219,7 +230,7 @@ const RaiseTicket = () => {
     const submitData = new FormData();
     submitData.append('id', deleteId);
     try {
-      const response = await fetch(`${BASE_URL}/delete-Holida/${deleteId}`);
+      const response = await fetch(`${BASE_URL}/delete-Holida/${deleteId}?company_id=${company_id}&branch_id=${branch_id}`);
       const result = await response.json();
       if (response.ok) {
         console.log(result);
@@ -241,6 +252,8 @@ const RaiseTicket = () => {
     console.log(notificationId);
     const submitData = new FormData();
     submitData.append('id', notificationId);
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
     try {
       const response = await fetch(`${BASE_URL}/notification/send`, {
         method: 'POST',
@@ -461,9 +474,9 @@ const RaiseTicket = () => {
                         {/* EMPLOYEE */}
                         <td>
                           <div className="rt-emp-cell">
-                            <div className="rt-avatar">{getInitials(record.user?.name)}</div>
+                            <div className="rt-avatar">{getInitials(record.user.employee.name)}</div>
                             <span className="rt-emp-name">
-                              {record.user?.name || 'Unknown User'}
+                              {record.user.employee.name || 'Unknown User'}
                             </span>
                           </div>
                         </td>

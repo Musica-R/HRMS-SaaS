@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/CompanyDetails.css';
 import Lottie from "lottie-react";
 import animationData from '../LottieFiles/Company.json';
 import { IoAdd } from 'react-icons/io5';
-// import { MdDeleteOutline } from 'react-icons/md';
 import { createPortal } from 'react-dom';
-import { FaGreaterThan } from 'react-icons/fa6';
 import { CiEdit } from 'react-icons/ci';
+import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const CompanyDetails = () => {
 
+  const { company_id, branch_id } = getCompanyBranch();
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -19,7 +19,7 @@ const CompanyDetails = () => {
   });
 
   const [formData1, setFormData1] = useState({
-    company_id: '',
+    company_id: company_id,
     branch_name: '',
     branch_lon: '',
     branch_lat: '',
@@ -32,30 +32,18 @@ const CompanyDetails = () => {
   const [activeBranchForm, setActiveBranchForm] = useState(false);
   const [branchList, setBranchList] = useState(false);
 
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
-  const [companies, setCompanies] = useState([]);
-  const [companyId, setCompanyId] = useState(null);
-
   const [branch, setBranch] = useState([]);
   // const [branchId, setBranchId] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
-  // const defaultOptions = {
-  //   loop: true,
-  //   autoplay: true,
-  //   animationData: animationData,
-  //   rendererSettings: {
-  //     preserveAspectRatio: 'xMidYMid slice',
-  //   },
-  // };
 
   /* ================= EDIT BRANCH ================= */
 
   const handleEdit = (branch) => {
     setFormData1({
-      company_id: branch.company_id,
+      company_id: company_id,
       branch_name: branch.branch_name,
       branch_lat: branch.branch_lat,
       branch_lon: branch.branch_lon,
@@ -67,50 +55,28 @@ const CompanyDetails = () => {
     setActiveBranchForm(true);
   };
 
-  /* ================= FETCH COMPANIES ================= */
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      setLoadingCompanies(true);
-
-      try {
-        const response = await fetch(
-          `${BASE_URL}/list-company`
-        );
-        const result = await response.json();
-        if (result.success) {
-          setCompanies(result.data);
-        }
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-      } finally {
-        setLoading(false);
-      }
-      setLoadingCompanies(false);
-    };
-
-    fetchCompanies();
-  }, [setActiveCompanyForm]);
 
   /* ================= FETCH BRANCH BY COMPANY ID ================= */
+
+  const [refreshBranches, setRefreshBranches] = useState(0);
 
   useEffect(() => {
     const fetchBranch = async () => {
       try {
         const response = await fetch(
-          `${BASE_URL}/list-Branch-id/${companyId}`
+          `${BASE_URL}/list-branch-id/${company_id}`
         );
         const result = await response.json();
-        if (result.success) {
-          setBranch(result.data);
-        }
+        if (result.success) setBranch(result.data);
       } catch (error) {
-        console.error('Error fetching companies:', error);
+        console.error('Error fetching branches:', error);
+      } finally {
+        setLoading(false);
       }
     };
-
     fetchBranch();
-  }, [companyId, formData1]);
+  }, [company_id, branch_id, refreshBranches]);
 
   /* ================= HANDLE INPUT ================= */
 
@@ -144,6 +110,9 @@ const CompanyDetails = () => {
         submitData.append(key, formData[key]);
       }
     });
+
+    submitData.append('company_id', company_id);
+    submitData.append('branch_id', branch_id);
 
     try {
       const response = await fetch(
@@ -182,16 +151,20 @@ const CompanyDetails = () => {
   const branchUpdate = async (e) => {
     e.preventDefault();
 
-    const submitData = new FormData();
-
-    Object.keys(formData1).forEach((key) => {
-      if (formData1[key] !== null) {
-        submitData.append(key, formData1[key]);
-      }
-    });
-
     try {
       if (isEdit) {
+        /* ---- UPDATE BRANCH: send full formData1 + logged_in context ---- */
+        const submitData = new FormData();
+
+        Object.keys(formData1).forEach((key) => {
+          if (formData1[key] !== null) {
+            submitData.append(key, formData1[key]);
+          }
+        });
+
+        submitData.append('logged_in_company_id', company_id);
+        submitData.append('logged_in_branch_id', branch_id);
+
         const response = await fetch(
           `${BASE_URL}/update-branch`,
           {
@@ -207,12 +180,13 @@ const CompanyDetails = () => {
           alert(result.message || 'Branch Updated successfully!');
 
           setFormData1({
-            company_id: '',
+            company_id: company_id,
             branch_name: '',
             branch_lon: '',
             branch_lat: '',
             branch_address: '',
             branch_id: '',
+            meter: ''
           });
         } else {
           alert(
@@ -220,6 +194,14 @@ const CompanyDetails = () => {
           );
         }
       } else {
+        /* ---- ADD BRANCH: send ONLY the 5 fields the API requires ---- */
+        const submitData = new FormData();
+        submitData.append('company_id', formData1.company_id);
+        submitData.append('branch_name', formData1.branch_name);
+        submitData.append('branch_lon', formData1.branch_lon);
+        submitData.append('branch_lat', formData1.branch_lat);
+        submitData.append('branch_address', formData1.branch_address);
+
         const response = await fetch(
           `${BASE_URL}/add-branch`,
           {
@@ -235,12 +217,13 @@ const CompanyDetails = () => {
           alert(result.message || 'Branch Created successfully!');
 
           setFormData1({
-            company_id: '',
+            company_id: company_id,
             branch_name: '',
             branch_lon: '',
             branch_lat: '',
             branch_address: '',
             branch_id: '',
+            meter: ''
           });
         } else {
           alert(
@@ -274,7 +257,7 @@ const CompanyDetails = () => {
         <div className="header-content">
           <div className="permission-title-group">
             {/* <Lottie options={defaultOptions} height={70} width={70} /> */}
-                      <Lottie animationData={animationData} style={{ width: "70px", height: "70px" }} />
+            <Lottie animationData={animationData} style={{ width: "70px", height: "70px" }} />
             <div>
               <h1>Add Company</h1>
               <p>
@@ -286,19 +269,16 @@ const CompanyDetails = () => {
         </div>
       </div>
       <div className="toggle-button">
-        
-        {/* <button
-          className="toggle-btn"
-          onClick={() => setActiveCompanyForm((prev) => !prev)}
-        >
-          <IoAdd style={{ fontSize: '15px' }} /> Add Company
-        </button> */}
+
 
         <button
           className="toggle-btn"
           onClick={() => setActiveBranchForm((prev) => !prev)}
         >
           <IoAdd style={{ fontSize: '15px' }} /> Add Branch
+        </button>
+        <button className="toggle-btn" onClick={() => setBranchList(true)}>
+          View Branches
         </button>
       </div>
 
@@ -374,7 +354,7 @@ const CompanyDetails = () => {
             onClick={() => {
               setActiveBranchForm(false);
               setFormData1({
-                company_id: '',
+                company_id: company_id,
                 branch_name: '',
                 branch_lon: '',
                 branch_lat: '',
@@ -393,7 +373,7 @@ const CompanyDetails = () => {
                 onClick={() => {
                   setActiveBranchForm(false);
                   setFormData1({
-                    company_id: '',
+                    company_id: company_id,
                     branch_name: '',
                     branch_lon: '',
                     branch_lat: '',
@@ -410,26 +390,6 @@ const CompanyDetails = () => {
               </h2>
 
               <form onSubmit={branchUpdate} className="registration-form">
-                {/* COMPANY ID */}
-                <div className="form-group">
-                  <label>Company ID</label>
-                  <select
-                    name="company_id"
-                    value={formData1.company_id}
-                    onChange={handleChange1}
-                    required
-                  >
-                    <option value="">
-                      {loadingCompanies ? 'Loading...' : 'Select Company'}
-                    </option>
-
-                    {companies.map((comp) => (
-                      <option key={comp.id} value={comp.id}>
-                        {comp.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
                 {/* BRANCH NAME */}
                 <div className="form-group">
@@ -505,31 +465,6 @@ const CompanyDetails = () => {
           </div>,
           document.body
         )}
-
-      {/* ================= COMPANY LIST ================= */}
-
-      <h2 className="form-title">Company List</h2>
-      <div className="card-container">
-        {companies.map((data) => (
-          <div className="holiday-card" key={data.id}>
-            <div className="card-header">
-              <h3>{data.name}</h3>
-              <span className="arrow">
-                <button
-                  className="delete-icons"
-                  onClick={() => {
-                    setBranchList(true);
-                    setCompanyId(data.id);
-                  }}
-                >
-                  <FaGreaterThan style={{ color: '#5355E0' }} />
-                </button>
-              </span>
-            </div>
-            {/* <p className="description">{data.description}</p> */}
-          </div>
-        ))}
-      </div>
 
       {/* ================= BRANCH LIST ================= */}
 

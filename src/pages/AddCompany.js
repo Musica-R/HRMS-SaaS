@@ -11,6 +11,8 @@ const AddCompany = () => {
         company_address: '',
         company_lon: '',
         company_lat: '',
+        branch_name: '',
+        meter: '',
         admin_email: '',
         admin_password: '',
     });
@@ -23,10 +25,13 @@ const AddCompany = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
         setLoading(true);
         try {
             const formData = new FormData();
-            Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+            Object.entries(form).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
             if (logo) formData.append('logo', logo);
 
             const token = localStorage.getItem("token");
@@ -84,6 +89,17 @@ const AddCompany = () => {
                         <div className="sa-form-group">
                             <label>Latitude</label>
                             <input className="sa-input" name="company_lat" placeholder="Optional" value={form.company_lat} onChange={handleChange} />
+                        </div>
+                    </div>
+
+                    <div className="sa-form-row">
+                        <div className="sa-form-group">
+                            <label>Branch Name</label>
+                            <input className="sa-input" name="branch_name" placeholder="e.g. Head Office" value={form.branch_name} onChange={handleChange} required />
+                        </div>
+                        <div className="sa-form-group">
+                            <label>Meter</label>
+                            <input className="sa-input" name="meter" type="number" step="any" placeholder="Optional" value={form.meter} onChange={handleChange} />
                         </div>
                     </div>
 

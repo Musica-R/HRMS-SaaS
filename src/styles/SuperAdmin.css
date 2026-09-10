@@ -54,6 +54,219 @@
     transform: none;
 }
 
+/* Edit button (table row action) */
+.sa-btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    border-radius: 8px;
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    border: 1px solid rgba(2, 132, 199, 0.25);
+    transition: all 0.2s ease;
+    font-family: 'Outfit', sans-serif;
+}
+
+.sa-btn-edit:hover {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+/* Secondary button (modal cancel) */
+.sa-btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.sa-btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.sa-btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Field-level validation error */
+.sa-field-error {
+    color: #dc2626;
+    font-size: 12.5px;
+    font-weight: 500;
+    margin: 2px 0 0;
+}
+
+/* ======================== EDIT MODAL ======================== */
+.sa-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.sa-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(3, 105, 161, 0.2);
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: sa-modal-in 0.2s ease;
+}
+
+@keyframes sa-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.sa-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 28px;
+    border-bottom: 1px solid rgba(3, 105, 161, 0.1);
+}
+
+.sa-modal-header h3 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: #0369a1;
+    font-family: 'Outfit', sans-serif;
+}
+
+.sa-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.sa-modal-close:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.sa-modal-close:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sa-modal-body {
+    padding: 24px 28px;
+}
+
+.sa-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+@media (max-width: 520px) {
+    .sa-modal-header {
+        padding: 18px 20px;
+    }
+
+    .sa-modal-body {
+        padding: 18px 20px;
+    }
+
+    .sa-modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    .sa-modal-footer .sa-btn-primary,
+    .sa-modal-footer .sa-btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ======================== STATUS TOGGLE ======================== */
+.sa-status-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: 'Outfit', sans-serif;
+}
+
+.sa-status-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.sa-status-toggle-track {
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    position: relative;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+}
+
+.sa-status-toggle[data-active="true"] .sa-status-toggle-track {
+    background: #16a34a;
+}
+
+.sa-status-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 0.25s ease;
+}
+
+.sa-status-toggle[data-active="true"] .sa-status-toggle-thumb {
+    transform: translateX(18px);
+}
+
+.sa-status-toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.sa-status-toggle[data-active="true"] .sa-status-toggle-label {
+    color: #16a34a;
+}
+
 /* ======================== ALERTS ======================== */
 .sa-error {
     background: rgba(220, 38, 38, 0.08);

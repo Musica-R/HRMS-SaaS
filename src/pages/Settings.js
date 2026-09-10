@@ -71,8 +71,8 @@ const Settings = () => {
                             <span className="detail-value">{userData?.email || 'N/A'}</span>
                         </div>
                         <div className="settings-detail-item">
-                            <span className="detail-label">Phone</span>
-                            <span className="detail-value">{userData?.phone || userData?.mobile || 'N/A'}</span>
+                            <span className="detail-label">Role</span>
+                            <span className="detail-value">{userData?.role || userData?.mobile || 'N/A'}</span>
                         </div>
                     </div>
                 </div>

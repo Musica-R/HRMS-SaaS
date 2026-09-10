@@ -4,7 +4,7 @@ import Lottie from "lottie-react";
 import animationData from '../LottieFiles/App login.json';
 import womanImg from '../assets/women with tab 1.png';
 import '../styles/Login.css';
-
+import { setCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -39,8 +39,13 @@ const Login = () => {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("user", JSON.stringify(data.user));
 
+                setCompanyBranch({
+                    company_id: data.user.company_id,
+                    branch_id: data.user.branch_id,
+                });
+
                 // role based
-                
+
                 if (data.user.role === "company") {
                     navigate('/admin');
                 } else if (data.user.role === "superadmin") {

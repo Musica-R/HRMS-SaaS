@@ -178,9 +178,9 @@ const DashboardHome = () => {
                             </div>
                         </div>
                         <div className="profile-info">
-                            <h3 className="profile-name">{adminData?.name || 'Unknown User'}</h3>
+                            <h3 className="profile-name">{adminData?.email || 'Unknown User'}</h3>
                             <div className="profile-role">{adminData?.position || adminData?.role || 'company'}</div>
-                            <span className="meta-item">{adminData?.empid || 'No ID assigned'}</span>
+                            {/* <span className="meta-item">{adminData?.empid || 'No ID assigned'}</span> */}
                         </div>
                         <button className="settings-icon-corner" onClick={() => navigate("/admin/settings")} title="Settings">
                             <FiSettings size={18} />

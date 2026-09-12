@@ -3,7 +3,7 @@ Options -MultiViews
 
 # Force HTTPS
 RewriteCond %{HTTPS} off
-RewriteRule ^ https://mpeoples-admin.mpeoplesnet.com%{REQUEST_URI} [L,R=301]
+RewriteRule ^ https://hrmssaas-adminpanel.mpeoplesnet.com%{REQUEST_URI} [L,R=301]
 
 # React Routing Fix
 RewriteBase /

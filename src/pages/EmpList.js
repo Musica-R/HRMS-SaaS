@@ -16,11 +16,11 @@ const INTERN_INACTIVE_URL = `${BASE_URL}/employees/inactive/roles`;
 const DELETE_URL = `${BASE_URL}/remove-user`;
 const TEAM_LIST_URL = `${BASE_URL}/teams/team-list`;
 const TEAM_BY_ID_URL = `${BASE_URL}/team-by-id`;
+const BRANCH_URL = `${BASE_URL}/get-branch-for-company`; // ✅ NEW
 
 export default function EmpList() {
 
   const { company_id, branch_id } = getCompanyBranch();
-
 
   /* ───────── Employee lists ───────── */
   const [employees, setEmployees] = useState([]);
@@ -32,8 +32,8 @@ export default function EmpList() {
 
   /* ───────── Team state ───────── */
   const [teamList, setTeamList] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState('all');   // 'all' or team id
-  const [teamMembers, setTeamMembers] = useState([]);      // raw data from team-by-id
+  const [selectedTeam, setSelectedTeam] = useState('all');
+  const [teamMembers, setTeamMembers] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
 
   /* ───────── UI state ───────── */
@@ -61,7 +61,9 @@ export default function EmpList() {
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
-  
+  const [branches, setBranches] = useState([]);           // ✅ NEW
+  const [loadingBranches, setLoadingBranches] = useState(false); // ✅ NEW
+
   /* ═══════════════════════════════════════════
      FETCH HELPERS
   ═══════════════════════════════════════════ */
@@ -121,6 +123,19 @@ export default function EmpList() {
     setTeamLoading(false);
   };
 
+  // ✅ NEW: fetch branches for this company
+  const fetchBranches = async () => {
+    setLoadingBranches(true);
+    try {
+      const res = await fetch(`${BRANCH_URL}?company_id=${company_id}`);
+      const json = await res.json();
+      if (json.success) setBranches(json.data);
+    } catch (err) {
+      console.log(err);
+    }
+    setLoadingBranches(false);
+  };
+
   const refreshAll = () => {
     fetchEmployees();
     fetchInactiveEmployees();
@@ -136,6 +151,7 @@ export default function EmpList() {
     fetchActiveInterns();
     fetchInactiveInterns();
     fetchTeamList();
+    fetchBranches(); // ✅ NEW
   }, [company_id, branch_id]);
 
   useEffect(() => {
@@ -223,7 +239,8 @@ export default function EmpList() {
       end_time: emp.end_time ? emp.end_time.slice(0, 5) : '',
 
       role_id: emp.role_id || '',
-      profile_img: null   // ✅ ADD THIS LINE
+      branch_id: emp.branch_id || branch_id || '', // ✅ NEW — defaults to employee's own branch, falls back to current context
+      profile_img: null
 
     });
     setEditModal(true);
@@ -243,7 +260,7 @@ export default function EmpList() {
       const toHMS = (t) => (!t ? '' : t.length === 8 ? t : t + ':00');
       formData.append('id', editData.id);
       formData.append('company_id', company_id);
-      formData.append('branch_id', branch_id);
+      formData.append('branch_id', editData.branch_id || branch_id); // ✅ CHANGED — sends the SELECTED branch, not the context branch, so this is what actually switches the employee's branch
       if (editData.name) formData.append('name', editData.name);
       if (editData.empid) formData.append('empid', editData.empid);
       if (editData.email) formData.append('email', editData.email);
@@ -270,15 +287,12 @@ export default function EmpList() {
         formData.append('profile_img', editData.profile_img);
       }
 
-      // for (let pair of formData.entries()) {
-      //   console.log(pair[0], pair[1]);
-      // }
-
       const res = await fetch(UPDATE_URL, { method: 'POST', body: formData });
       const json = await res.json();
 
       if (json.success) {
         await refreshAll();
+        fetchTeamList(); // ✅ NEW — team/branch membership may have shifted
         setEditModal(false);
       } else {
         setSaveError(json.message || 'Update failed');
@@ -288,7 +302,6 @@ export default function EmpList() {
     }
     setSaving(false);
   };
-
 
   const sendPasswordReset = async () => {
     if (!pwdEmail.trim()) { setPwdSendError('Please enter an email.'); return; }
@@ -345,7 +358,6 @@ export default function EmpList() {
   const search = (arr) =>
     arr.filter((emp) => {
       const term = normalize(searchTerm);
-
       return (
         normalize(emp.name || '').includes(term) ||
         normalize(emp.empid || '').includes(term)
@@ -400,8 +412,6 @@ export default function EmpList() {
         <p><strong>Status:</strong>       {emp.employee_status || 'N/A'}</p>
         <p><strong>Role:</strong>       {emp.role_name || 'N/A'}</p>
 
-
-
         <div className="emp-card-actions">
           <label className="switch">
             <input
@@ -416,7 +426,6 @@ export default function EmpList() {
       </div>
 
       <div className="emp-card-actions report">
-
         <button
           className="btn-view-report"
           onClick={() =>
@@ -458,23 +467,15 @@ export default function EmpList() {
         </div>
 
         <div className="emplist-header-right">
-
           <div className="topbar-actions">
-            <button
-              className="btn-add"
-              onClick={() => navigate("/admin/add-employee")}
-            >
+            <button className="btn-add" onClick={() => navigate("/admin/add-employee")}>
               + Add Employee
             </button>
-
-            <button
-              className="btn-add"
-              onClick={() => navigate("/admin/add-team")}
-            >
+            <button className="btn-add" onClick={() => navigate("/admin/add-team")}>
               + Add Team
             </button>
           </div>
-          {/* Team dropdown */}
+
           <div className="team-select-wrap">
             <select
               className="team-select"
@@ -489,7 +490,6 @@ export default function EmpList() {
             <FiChevronDown className="team-select-icon" />
           </div>
 
-          {/* Search */}
           <div className="emplist-search-wrap">
             <FiSearch className="search-icon" />
             <input
@@ -504,9 +504,6 @@ export default function EmpList() {
 
       {loading && <p>Loading...</p>}
 
-      {/* ════════════════════════════════════
-          ALL TEAMS VIEW  (default)
-      ════════════════════════════════════ */}
       {selectedTeam === 'all' && (
         <>
           <div className="pl-tabs">
@@ -543,17 +540,12 @@ export default function EmpList() {
         </>
       )}
 
-      {/* ════════════════════════════════════
-          SPECIFIC TEAM VIEW
-      ════════════════════════════════════ */}
-
       {selectedTeam !== 'all' && (
         <>
           {teamLoading ? (
             <div className="emp-loader"><p>Loading team...</p></div>
           ) : (
             <>
-              {/* ── Team Leads ── */}
               {teamLeads.length > 0 && (
                 <div className="team-section">
                   <div className="team-section-header">
@@ -576,7 +568,6 @@ export default function EmpList() {
                 </div>
               )}
 
-              {/* ── Team Members ── */}
               {teamMembersFiltered.length > 0 && (
                 <div className="team-section">
                   <div className="team-section-header">
@@ -626,101 +617,52 @@ export default function EmpList() {
 
               <div className="form-group-edit">
                 <label>Name</label>
-                <input
-                  name="name"
-                  value={editData.name}
-                  onChange={handleEditChange}
-                  placeholder="Name"
-                />
+                <input name="name" value={editData.name} onChange={handleEditChange} placeholder="Name" />
               </div>
 
               <div className="form-group-edit">
                 <label>Employee ID</label>
-                <input
-                  name="empid"
-                  value={editData.empid}
-                  onChange={handleEditChange}
-                  placeholder="Emp ID"
-                />
+                <input name="empid" value={editData.empid} onChange={handleEditChange} placeholder="Emp ID" />
               </div>
 
               <div className="form-group-edit">
                 <label>Email</label>
-                <input
-                  name="email"
-                  value={editData.email}
-                  onChange={handleEditChange}
-                  placeholder="Email"
-                />
+                <input name="email" value={editData.email} onChange={handleEditChange} placeholder="Email" />
               </div>
 
               <div className="form-group-edit">
                 <label>Mobile</label>
-                <input
-                  name="mobile"
-                  value={editData.mobile}
-                  onChange={handleEditChange}
-                  placeholder="Mobile"
-                />
+                <input name="mobile" value={editData.mobile} onChange={handleEditChange} placeholder="Mobile" />
               </div>
 
               <div className="form-group-edit">
                 <label>Position</label>
-                <input
-                  name="position"
-                  value={editData.position}
-                  onChange={handleEditChange}
-                  placeholder="Position"
-                />
+                <input name="position" value={editData.position} onChange={handleEditChange} placeholder="Position" />
               </div>
 
               <div className="form-group-edit">
                 <label>Date of Birth</label>
-                <input
-                  type="date"
-                  name="dob"
-                  value={editData.dob}
-                  onChange={handleEditChange}
-                />
+                <input type="date" name="dob" value={editData.dob} onChange={handleEditChange} />
               </div>
 
               <div className="form-group-edit">
                 <label>Address</label>
-                <input
-                  name="address"
-                  value={editData.address}
-                  onChange={handleEditChange}
-                  placeholder="Address"
-                />
+                <input name="address" value={editData.address} onChange={handleEditChange} placeholder="Address" />
               </div>
 
               <div className="form-group-edit">
                 <label>Start Time</label>
-                <input
-                  type="time"
-                  name="start_time"
-                  value={editData.start_time}
-                  onChange={handleEditChange}
-                />
+                <input type="time" name="start_time" value={editData.start_time} onChange={handleEditChange} />
               </div>
 
               <div className="form-group-edit">
                 <label>End Time</label>
-                <input
-                  type="time"
-                  name="end_time"
-                  value={editData.end_time}
-                  onChange={handleEditChange}
-                />
+                <input type="time" name="end_time" value={editData.end_time} onChange={handleEditChange} />
               </div>
 
               <div className="form-group-edit">
                 <label>Designation</label>
-                <select
-                  name="designation"
-                  value={editData.designation}
-                  onChange={handleEditChange}
-                >
+                <select name="designation" value={editData.designation} onChange={handleEditChange}>
                   <option value="">Select Designation</option>
                   <option value="TL">Team Lead (TL)</option>
                   <option value="TM">Team Member (TM)</option>
@@ -729,41 +671,22 @@ export default function EmpList() {
 
               <div className="form-group-edit">
                 <label>Qualification</label>
-                <input
-                  name="qualification"
-                  value={editData.qualification}
-                  onChange={handleEditChange}
-                  placeholder="Qualification"
-                />
+                <input name="qualification" value={editData.qualification} onChange={handleEditChange} placeholder="Qualification" />
               </div>
 
               <div className="form-group-edit">
                 <label>Joining Date</label>
-                <input
-                  type="date"
-                  name="joining_date"
-                  value={editData.joining_date}
-                  onChange={handleEditChange}
-                />
+                <input type="date" name="joining_date" value={editData.joining_date} onChange={handleEditChange} />
               </div>
 
               <div className="form-group-edit">
                 <label>Experience</label>
-                <input
-                  name="experience"
-                  value={editData.experience}
-                  onChange={handleEditChange}
-                  placeholder="Experience"
-                />
+                <input name="experience" value={editData.experience} onChange={handleEditChange} placeholder="Experience" />
               </div>
 
               <div className="form-group-edit">
                 <label>Employee Status</label>
-                <select
-                  name="employee_status"
-                  value={editData.employee_status}
-                  onChange={handleEditChange}
-                >
+                <select name="employee_status" value={editData.employee_status} onChange={handleEditChange}>
                   <option value="">Select Status</option>
                   <option value="working">Working</option>
                   <option value="notice_period">Notice Period</option>
@@ -773,13 +696,7 @@ export default function EmpList() {
 
               <div className="form-group-edit">
                 <label>Salary</label>
-                <input
-                  type="number"
-                  name="salary"
-                  value={editData.salary}
-                  onChange={handleEditChange}
-                  placeholder="Salary"
-                />
+                <input type="number" name="salary" value={editData.salary} onChange={handleEditChange} placeholder="Salary" />
               </div>
 
               <div className="form-group-edit">
@@ -799,15 +716,10 @@ export default function EmpList() {
 
               <div className="form-group-edit">
                 <label>Role</label>
-                <select
-                  name="role_id"
-                  value={editData.role_id}
-                  onChange={handleEditChange}
-                >
+                <select name="role_id" value={editData.role_id} onChange={handleEditChange}>
                   <option value="">
                     {loadingRoles ? 'Loading...' : 'Select Role'}
                   </option>
-
                   {roles.map((role) => (
                     <option key={role.id} value={role.id}>
                       {role.name}
@@ -816,10 +728,23 @@ export default function EmpList() {
                 </select>
               </div>
 
+              {/* ✅ NEW — Branch dropdown */}
+              <div className="form-group-edit">
+                <label>Branch</label>
+                <select name="branch_id" value={editData.branch_id} onChange={handleEditChange}>
+                  <option value="">
+                    {loadingBranches ? 'Loading...' : 'Select Branch'}
+                  </option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
             </div>
 
-
-            {/* Change Password Button */}
             <div className="form-group-edit" style={{ gridColumn: 'span 2' }}>
               <button
                 type="button"
@@ -833,7 +758,6 @@ export default function EmpList() {
                 Change Password
               </button>
             </div>
-
 
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setEditModal(false)}>Cancel</button>

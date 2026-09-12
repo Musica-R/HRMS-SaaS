@@ -30,10 +30,11 @@ const CompanyDetails = () => {
 
   const [activeCompanyForm, setActiveCompanyForm] = useState(false);
   const [activeBranchForm, setActiveBranchForm] = useState(false);
-  const [branchList, setBranchList] = useState(false);
+
+  // Branch list is a default-open section on the page (no longer a modal)
+  const [branchListOpen, setBranchListOpen] = useState(true);
 
   const [branch, setBranch] = useState([]);
-  // const [branchId, setBranchId] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -188,6 +189,7 @@ const CompanyDetails = () => {
             branch_id: '',
             meter: ''
           });
+          setRefreshBranches((prev) => prev + 1);
         } else {
           alert(
             'Failed to update Branch: ' + (result.message || 'Unknown error')
@@ -225,6 +227,7 @@ const CompanyDetails = () => {
             branch_id: '',
             meter: ''
           });
+          setRefreshBranches((prev) => prev + 1);
         } else {
           alert(
             'Failed to create Branch: ' + (result.message || 'Unknown error')
@@ -235,28 +238,42 @@ const CompanyDetails = () => {
       console.error('Error submitting form:', error);
       alert('Error submitting form');
     } finally {
+      setIsEdit(false);
       setActiveBranchForm(false);
     }
+  };
+
+  const resetBranchForm = () => {
+    setActiveBranchForm(false);
+    setIsEdit(false);
+    setFormData1({
+      company_id: company_id,
+      branch_name: '',
+      branch_lon: '',
+      branch_lat: '',
+      branch_address: '',
+      branch_id: '',
+      meter: ''
+    });
   };
 
   /* ================= LOADING STATE ================= */
 
   if (loading) {
     return (
-      <div className="attendance-page loading-container">
-        <div className="loader-pulse"></div>
+      <div className="cd-loading">
+        <div className="cd-loader"></div>
         <p>Loading Company records...</p>
       </div>
     );
   }
 
   return (
-    <div className="form-containers fade-in-up">
+    <div className="cd-page cd-fade-in-up">
       {/* HEADER */}
-      <div className="page-headers glass-panels">
-        <div className="header-content">
-          <div className="permission-title-group">
-            {/* <Lottie options={defaultOptions} height={70} width={70} /> */}
+      <div className="cd-header-card cd-glass">
+        <div className="cd-header-content">
+          <div className="cd-title-group">
             <Lottie animationData={animationData} style={{ width: "70px", height: "70px" }} />
             <div>
               <h1>Add Company</h1>
@@ -268,17 +285,19 @@ const CompanyDetails = () => {
           </div>
         </div>
       </div>
-      <div className="toggle-button">
 
-
+      <div className="cd-toolbar">
         <button
-          className="toggle-btn"
-          onClick={() => setActiveBranchForm((prev) => !prev)}
+          className="cd-toggle-btn"
+          onClick={() => setActiveBranchForm(true)}
         >
           <IoAdd style={{ fontSize: '15px' }} /> Add Branch
         </button>
-        <button className="toggle-btn" onClick={() => setBranchList(true)}>
-          View Branches
+        <button
+          className="cd-toggle-btn cd-toggle-btn--ghost"
+          onClick={() => setBranchListOpen((prev) => !prev)}
+        >
+          {branchListOpen ? 'Hide Branches' : 'View Branches'}
         </button>
       </div>
 
@@ -287,25 +306,25 @@ const CompanyDetails = () => {
       {activeCompanyForm &&
         createPortal(
           <div
-            className="modal-overlays"
+            className="cd-modal-overlay"
             onClick={() => setActiveCompanyForm(false)}
           >
             <div
-              className="form-card modal"
+              className="cd-form-card cd-modal"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="close-btn"
+                className="cd-close-btn"
                 onClick={() => setActiveCompanyForm(false)}
               >
                 ×
               </button>
-              <h2 className="form-title">Add New Company</h2>
+              <h2 className="cd-form-title">Add New Company</h2>
 
-              <form onSubmit={handleSubmit} className="registration-form">
+              <form onSubmit={handleSubmit} className="cd-form-grid">
                 {/* COMPANY NAME */}
 
-                <div className="form-group">
+                <div className="cd-form-group">
                   <label>Company Name</label>
                   <input
                     type="text"
@@ -318,7 +337,7 @@ const CompanyDetails = () => {
 
                 {/* COMPANY ADDRESS */}
 
-                <div className="form-group full-width">
+                <div className="cd-form-group cd-form-group--full">
                   <label>Company Address</label>
 
                   <textarea
@@ -332,10 +351,9 @@ const CompanyDetails = () => {
 
                 {/* SUBMIT */}
 
-                <div className="form-actions full-width">
-                  <button type="submit" className="submit-btn">
-                    {' '}
-                    Add Company{' '}
+                <div className="cd-form-actions cd-form-group--full">
+                  <button type="submit" className="cd-submit-btn">
+                    Add Company
                   </button>
                 </div>
 
@@ -350,49 +368,27 @@ const CompanyDetails = () => {
       {activeBranchForm &&
         createPortal(
           <div
-            className="modal-overlays"
-            onClick={() => {
-              setActiveBranchForm(false);
-              setFormData1({
-                company_id: company_id,
-                branch_name: '',
-                branch_lon: '',
-                branch_lat: '',
-                branch_address: '',
-                branch_id: '',
-                meter: ''
-              });
-            }}
+            className="cd-modal-overlay"
+            onClick={resetBranchForm}
           >
             <div
-              className="form-card modal"
+              className="cd-form-card cd-modal"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="close-btn"
-                onClick={() => {
-                  setActiveBranchForm(false);
-                  setFormData1({
-                    company_id: company_id,
-                    branch_name: '',
-                    branch_lon: '',
-                    branch_lat: '',
-                    branch_address: '',
-                    branch_id: '',
-                    meter: ''
-                  });
-                }}
+                className="cd-close-btn"
+                onClick={resetBranchForm}
               >
                 ×
               </button>
-              <h2 className="form-title">
+              <h2 className="cd-form-title">
                 {isEdit ? 'Update Branch' : 'Add New Branch'}
               </h2>
 
-              <form onSubmit={branchUpdate} className="registration-form">
+              <form onSubmit={branchUpdate} className="cd-form-grid">
 
                 {/* BRANCH NAME */}
-                <div className="form-group">
+                <div className="cd-form-group">
                   <label>Branch Name</label>
                   <input
                     type="text"
@@ -404,7 +400,7 @@ const CompanyDetails = () => {
                 </div>
 
                 {/* BRANCH LATITUDE */}
-                <div className="form-group">
+                <div className="cd-form-group">
                   <label>Company Latitude</label>
                   <input
                     type="text"
@@ -416,7 +412,7 @@ const CompanyDetails = () => {
                 </div>
 
                 {/* BRANCH LONGITUDE */}
-                <div className="form-group">
+                <div className="cd-form-group">
                   <label>Company Longitude</label>
                   <input
                     type="text"
@@ -428,7 +424,7 @@ const CompanyDetails = () => {
                 </div>
 
                 {/* BRANCH ADDRESS */}
-                <div className="form-group full-width">
+                <div className="cd-form-group cd-form-group--full">
                   <label>Branch Address</label>
                   <textarea
                     name="branch_address"
@@ -440,7 +436,7 @@ const CompanyDetails = () => {
                 </div>
 
                 {/* RADIUS DROPDOWN */}
-                <div className="form-group">
+                <div className="cd-form-group">
                   <label>Allowed Radius (Meters)</label>
                   <select name="meter" value={formData1.meter} onChange={handleChange1} required>
                     <option value="">Select Radius</option>
@@ -454,10 +450,9 @@ const CompanyDetails = () => {
 
                 {/* SUBMIT */}
 
-                <div className="form-actions full-width">
-                  <button type="submit" className="submit-btn">
-                    {' '}
-                    {isEdit ? 'Update Branch' : 'Add Branch'}{' '}
+                <div className="cd-form-actions cd-form-group--full">
+                  <button type="submit" className="cd-submit-btn">
+                    {isEdit ? 'Update Branch' : 'Add Branch'}
                   </button>
                 </div>
               </form>
@@ -466,62 +461,57 @@ const CompanyDetails = () => {
           document.body
         )}
 
-      {/* ================= BRANCH LIST ================= */}
+      {/* ================= BRANCH LIST (default-open page section) ================= */}
 
-      {branchList &&
-        createPortal(
-          <div className="modal-overlays" onClick={() => setBranchList(false)}>
-            <div
-              className="form-card1 modal"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="close-btn"
-                onClick={() => setBranchList(false)}
-              >
-                ×
-              </button>
-              <h2 className="form-title">Branch List</h2>
+      {branchListOpen && (
+        <section className="cd-branch-section">
+          <div className="cd-branch-section-head">
+            <h2 className="cd-form-title cd-form-title--inline">Branches</h2>
+            <span className="cd-branch-count">{branch.length}</span>
+          </div>
 
-              <div className="card-containers">
-                {branch.map((data) => (
-                  <div className="holiday-card" key={data.id}>
-                    <div className="toggle-button">
-                      <button
-                        className="delete-icons"
-                        onClick={() => handleEdit(data)}
-                      >
-                        <CiEdit style={{ color: '#5355E0' }} />
-                      </button>
-                      {/* <button
-                        className="delete-icons"
-                      >
-                        <MdDeleteOutline
-                          style={{ fontSize: '23px', color: '#c62828' }}
-                        />
-                      </button> */}
-                    </div>
-                    <div className="card-header">
-                      <h3>{data.branch_name}</h3>
-                      {/* <span className="date">Lat:{data.branch_lat}</span>
-                      <span className="date">Lon:{data.branch_lon}</span> */}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span className="date">Lat: {data.branch_lat}</span>
-                      <span className="date">Lon: {data.branch_lon}</span>
-                    </div>
-
-                    <div className="meter-badge">
-                      {data.meter} meters
-                    </div>
-                    <p className="description">{data.branch_address}</p>
-                  </div>
-                ))}
-              </div>
+          {branch.length === 0 ? (
+            <div className="cd-branch-empty">
+              <p>No branches yet.</p>
+              <span>Add your first branch to start tracking attendance by location.</span>
             </div>
-          </div>,
-          document.body
-        )}
+          ) : (
+            <div className="cd-branch-grid">
+              {branch.map((data) => (
+                <div className="cd-branch-card" key={data.id}>
+                  <div className="cd-branch-card-top">
+                    <h3>{data.branch_name}</h3>
+                    <button
+                      className="cd-icon-btn"
+                      onClick={() => handleEdit(data)}
+                      aria-label={`Edit ${data.branch_name}`}
+                    >
+                      <CiEdit />
+                    </button>
+                  </div>
+
+                  <div className="cd-branch-fields">
+                    <div className="cd-branch-field">
+                      <span className="cd-branch-field-label">Latitude</span>
+                      <span className="cd-branch-field-value">{data.branch_lat}</span>
+                    </div>
+                    <div className="cd-branch-field">
+                      <span className="cd-branch-field-label">Longitude</span>
+                      <span className="cd-branch-field-value">{data.branch_lon}</span>
+                    </div>
+                    <div className="cd-branch-field">
+                      <span className="cd-branch-field-label">Allowed radius</span>
+                      <span className="cd-branch-field-value">{data.meter} m</span>
+                    </div>
+                  </div>
+
+                  <p className="cd-branch-address">{data.branch_address}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };

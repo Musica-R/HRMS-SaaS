@@ -19,6 +19,33 @@ const AdminLayout = () => {
     const { company_id, branch_id } = getCompanyBranch();
     const [branches, setBranches] = useState([]);
 
+    // ---- Read logged-in user permissions from localStorage ----
+    const [permissions, setPermissions] = useState({
+        leave_permission: 'no',
+        permission: 'no',
+        payroll: 'no',
+        notification: 'no',
+        riseticket: 'no',
+    });
+
+    useEffect(() => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                setPermissions({
+                    leave_permission: user.leave_permission || 'no',
+                    permission: user.permission || 'no',
+                    payroll: user.payroll || 'no',
+                    notification: user.notification || 'no',
+                    riseticket: user.riseticket || 'no',
+                });
+            }
+        } catch (err) {
+            console.error('Failed to parse user from localStorage', err);
+        }
+    }, []);
+
     useEffect(() => {
         if (!company_id) return;
         const BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -89,6 +116,8 @@ const AdminLayout = () => {
                 </div>
 
                 <nav className="sidebar-nav">
+
+                    {/* ---- Default items: always shown ---- */}
                     <NavLink to="/admin" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <FiHome className="nav-icon" /><span>Dashboard</span>
                     </NavLink>
@@ -101,33 +130,46 @@ const AdminLayout = () => {
                         <FiCalendar className="nav-icon" /> <span>Attendance List</span>
                     </NavLink>
 
-                    <NavLink to="/admin/leave-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <FiFileText className="nav-icon" /> <span>Leave List</span>
-                    </NavLink>
+                    {/* ---- Conditional items ---- */}
+                    {permissions.leave_permission === 'yes' && (
+                        <NavLink to="/admin/leave-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <FiFileText className="nav-icon" /> <span>Leave List</span>
+                        </NavLink>
+                    )}
 
-                    <NavLink to="/admin/permission-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <FiShield className="nav-icon" /> <span>Permission List</span>
-                    </NavLink>
+                    {permissions.permission === 'yes' && (
+                        <NavLink to="/admin/permission-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <FiShield className="nav-icon" /> <span>Permission List</span>
+                        </NavLink>
+                    )}
 
-                    <NavLink to="/admin/payroll-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <BsCurrencyDollar className="nav-icon" /> <span>Payroll</span>
-                    </NavLink>
+                    {permissions.payroll === 'yes' && (
+                        <NavLink to="/admin/payroll-list" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <BsCurrencyDollar className="nav-icon" /> <span>Payroll</span>
+                        </NavLink>
+                    )}
 
+                    {/* ---- Default items: always shown ---- */}
                     <NavLink to="/admin/add-holiday" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <BsSuitcase2 className="nav-icon" /> <span>Holiday</span>
                     </NavLink>
 
-                    <NavLink to="/admin/add-notification" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <MdOutlineNotificationsActive className="nav-icon" /> <span>Notification</span>
-                    </NavLink>
+                    {permissions.notification === 'yes' && (
+                        <NavLink to="/admin/add-notification" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <MdOutlineNotificationsActive className="nav-icon" /> <span>Notification</span>
+                        </NavLink>
+                    )}
 
                     <NavLink to="/admin/add-company" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <GoOrganization className="nav-icon" /><span>Company Details</span>
                     </NavLink>
 
-                    <NavLink to="/admin/raise-ticket" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <IoTicketOutline className="nav-icon" /> <span>Raise Ticket</span>
-                    </NavLink>
+                    {permissions.riseticket === 'yes' && (
+                        <NavLink to="/admin/raise-ticket" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <IoTicketOutline className="nav-icon" /> <span>Raise Ticket</span>
+                        </NavLink>
+                    )}
+
                 </nav>
 
                 <div className="sidebar-footer">

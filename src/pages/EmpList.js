@@ -16,7 +16,8 @@ const INTERN_INACTIVE_URL = `${BASE_URL}/employees/inactive/roles`;
 const DELETE_URL = `${BASE_URL}/remove-user`;
 const TEAM_LIST_URL = `${BASE_URL}/teams/team-list`;
 const TEAM_BY_ID_URL = `${BASE_URL}/team-by-id`;
-const BRANCH_URL = `${BASE_URL}/get-branch-for-company`; // ✅ NEW
+const BRANCH_URL = `${BASE_URL}/get-branch-for-company`;
+const SHIFTS_URL = `${BASE_URL}/company/shifts`; // ✅ NEW — dedicated shifts endpoint
 
 export default function EmpList() {
 
@@ -61,15 +62,25 @@ export default function EmpList() {
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
-  const [branches, setBranches] = useState([]);           // ✅ NEW
-  const [loadingBranches, setLoadingBranches] = useState(false); // ✅ NEW
+  const [branches, setBranches] = useState([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+
+  /* ───────── Company shifts (dedicated endpoint) — used for BOTH the
+     filter dropdown and the Edit-modal shift dropdown ───────── */
+  const [companyShifts, setCompanyShifts] = useState([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+
+  /* ───────── NEW — Shift filter (like Team filter) ───────── */
+  const [shiftFilter, setShiftFilter] = useState('all');
 
   /* ═══════════════════════════════════════════
      FETCH HELPERS
   ═══════════════════════════════════════════ */
+  const shiftParam = shiftFilter !== 'all' ? `&shift=${encodeURIComponent(shiftFilter)}` : ''; // ✅ NEW
+
   const fetchEmployees = async () => {
     try {
-      const res = await fetch(`${API_URL}?company_id=${company_id}&branch_id=${branch_id}`);
+      const res = await fetch(`${API_URL}?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const json = await res.json();
       if (json.success) setEmployees(json.data);
     } catch (err) { console.log(err); }
@@ -78,7 +89,7 @@ export default function EmpList() {
 
   const fetchInactiveEmployees = async () => {
     try {
-      const res = await fetch(`${INACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}`);
+      const res = await fetch(`${INACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const json = await res.json();
       if (json.success) setInactiveEmployees(json.data);
     } catch (err) { console.log(err); }
@@ -87,7 +98,7 @@ export default function EmpList() {
 
   const fetchActiveInterns = async () => {
     try {
-      const res = await fetch(`${INTERN_ACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}`);
+      const res = await fetch(`${INTERN_ACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const json = await res.json();
       if (json.success) setActiveInterns(json.data);
     } catch (err) { console.log(err); }
@@ -95,7 +106,7 @@ export default function EmpList() {
 
   const fetchInactiveInterns = async () => {
     try {
-      const res = await fetch(`${INTERN_INACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}`);
+      const res = await fetch(`${INTERN_INACTIVE_URL}?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const json = await res.json();
       if (json.success) setInactiveInterns(json.data);
     } catch (err) { console.log(err); }
@@ -123,7 +134,6 @@ export default function EmpList() {
     setTeamLoading(false);
   };
 
-  // ✅ NEW: fetch branches for this company
   const fetchBranches = async () => {
     setLoadingBranches(true);
     try {
@@ -134,6 +144,19 @@ export default function EmpList() {
       console.log(err);
     }
     setLoadingBranches(false);
+  };
+
+  /* ✅ NEW — fetch company shifts from the dedicated endpoint */
+  const fetchCompanyShifts = async () => {
+    setLoadingShifts(true);
+    try {
+      const res = await fetch(`${SHIFTS_URL}?company_id=${company_id}&branch_id=${branch_id}`);
+      const json = await res.json();
+      if (json.success) setCompanyShifts(json.data?.shift || []);
+    } catch (err) {
+      console.log(err);
+    }
+    setLoadingShifts(false);
   };
 
   const refreshAll = () => {
@@ -151,8 +174,18 @@ export default function EmpList() {
     fetchActiveInterns();
     fetchInactiveInterns();
     fetchTeamList();
-    fetchBranches(); // ✅ NEW
+    fetchBranches();
+    fetchCompanyShifts(); // ✅ NEW
   }, [company_id, branch_id]);
+
+  /* ✅ NEW — re-fetch the four employee lists whenever the shift filter changes */
+  useEffect(() => {
+    setLoading(true);
+    fetchEmployees();
+    fetchInactiveEmployees();
+    fetchActiveInterns();
+    fetchInactiveInterns();
+  }, [shiftFilter]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -180,6 +213,11 @@ export default function EmpList() {
     } else {
       fetchTeamById(val);
     }
+  };
+
+  /* ✅ NEW — Shift filter change */
+  const handleShiftFilterChange = (e) => {
+    setShiftFilter(e.target.value);
   };
 
   /* ═══════════════════════════════════════════
@@ -235,11 +273,12 @@ export default function EmpList() {
       experience: emp.experience || '',
       employee_status: emp.employee_status || '',
       salary: emp.salary || '',
+      shift_type: emp.shift_type || '',
       start_time: emp.start_time ? emp.start_time.slice(0, 5) : '',
       end_time: emp.end_time ? emp.end_time.slice(0, 5) : '',
 
       role_id: emp.role_id || '',
-      branch_id: emp.branch_id || branch_id || '', // ✅ NEW — defaults to employee's own branch, falls back to current context
+      branch_id: emp.branch_id || branch_id || '',
       profile_img: null
 
     });
@@ -251,6 +290,30 @@ export default function EmpList() {
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleEditShiftChange = (e) => {
+    const { value } = e.target;
+
+    if (value === '' || value === 'custom') {
+      setEditData((prev) => ({
+        ...prev,
+        shift_type: value,
+        ...(value === '' ? { start_time: '', end_time: '' } : {}),
+      }));
+      return;
+    }
+
+    const selectedShift = companyShifts.find((s) => s.name === value);
+
+    if (selectedShift) {
+      setEditData((prev) => ({
+        ...prev,
+        shift_type: value,
+        start_time: selectedShift.start_time,
+        end_time: selectedShift.end_time,
+      }));
+    }
+  };
+
   const saveEdit = async () => {
     if (!editData?.id) { setSaveError('ID missing'); return; }
     setSaving(true);
@@ -260,7 +323,7 @@ export default function EmpList() {
       const toHMS = (t) => (!t ? '' : t.length === 8 ? t : t + ':00');
       formData.append('id', editData.id);
       formData.append('company_id', company_id);
-      formData.append('branch_id', editData.branch_id || branch_id); // ✅ CHANGED — sends the SELECTED branch, not the context branch, so this is what actually switches the employee's branch
+      formData.append('branch_id', editData.branch_id || branch_id);
       if (editData.name) formData.append('name', editData.name);
       if (editData.empid) formData.append('empid', editData.empid);
       if (editData.email) formData.append('email', editData.email);
@@ -268,6 +331,11 @@ export default function EmpList() {
       if (editData.position) formData.append('position', editData.position);
       if (editData.address) formData.append('address', editData.address);
       if (editData.dob) formData.append('dob', editData.dob);
+
+      if (editData.shift_type && editData.shift_type !== 'custom') {
+        formData.append('shift_type', editData.shift_type);
+      }
+
       if (editData.start_time) formData.append('start_time', toHMS(editData.start_time));
       if (editData.end_time) formData.append('end_time', toHMS(editData.end_time));
       if (editData.designation) formData.append('designation', editData.designation);
@@ -292,7 +360,7 @@ export default function EmpList() {
 
       if (json.success) {
         await refreshAll();
-        fetchTeamList(); // ✅ NEW — team/branch membership may have shifted
+        fetchTeamList();
         setEditModal(false);
       } else {
         setSaveError(json.message || 'Update failed');
@@ -400,6 +468,7 @@ export default function EmpList() {
         <p><strong>Phone:</strong>        {emp.mobile}</p>
         <p><strong>DOB:</strong>          {emp.dob || 'N/A'}</p>
         <p><strong>Address:</strong>      {emp.address}</p>
+        <p><strong>Shift:</strong>        {emp.shift_name || emp.shift_type || 'N/A'}</p>
         <p>
           <strong>Work Time:</strong>{' '}
           {formatTime(emp.start_time)} to {formatTime(emp.end_time)}
@@ -453,13 +522,16 @@ export default function EmpList() {
   /* ═══════════════════════════════════════════
      RENDER
   ═══════════════════════════════════════════ */
+  const isEditTimeLocked =
+    editData?.shift_type && editData.shift_type !== 'custom';
+
   return (
     <div className="emplist-page">
 
       {/* ── HEADER ── */}
       <div className="emplist-header">
         <div className="emplist-title">
-          <Lottie animationData={animationData} style={{ width: "90px", height: "90px" }} />
+          {/* <Lottie animationData={animationData} style={{ width: "90px", height: "90px" }} /> */}
           <div>
             <h1>Employee List</h1>
             <p>{employees.length} employees</p>
@@ -485,6 +557,25 @@ export default function EmpList() {
               <option value="all">All Teams</option>
               {teamList.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <FiChevronDown className="team-select-icon" />
+          </div>
+
+          {/* ✅ NEW — Shift filter dropdown */}
+          <div className="team-select-wrap">
+            <select
+              className="team-select"
+              value={shiftFilter}
+              onChange={handleShiftFilterChange}
+            >
+              <option value="all">
+                {loadingShifts ? 'Loading shifts...' : 'All Shifts'}
+              </option>
+              {companyShifts.map((shift) => (
+                <option key={shift.name} value={shift.name}>
+                  {shift.name} ({shift.start_time}–{shift.end_time})
+                </option>
               ))}
             </select>
             <FiChevronDown className="team-select-icon" />
@@ -651,13 +742,38 @@ export default function EmpList() {
               </div>
 
               <div className="form-group-edit">
+                <label>Shift</label>
+                <select name="shift_type" value={editData.shift_type} onChange={handleEditShiftChange}>
+                  <option value="">Select Shift</option>
+                  {companyShifts.map((shift) => (
+                    <option key={shift.name} value={shift.name}>
+                      {shift.name} ({shift.start_time} - {shift.end_time})
+                    </option>
+                  ))}
+                  <option value="custom">Custom (set manually)</option>
+                </select>
+              </div>
+
+              <div className="form-group-edit">
                 <label>Start Time</label>
-                <input type="time" name="start_time" value={editData.start_time} onChange={handleEditChange} />
+                <input
+                  type="time"
+                  name="start_time"
+                  value={editData.start_time}
+                  onChange={handleEditChange}
+                  disabled={isEditTimeLocked}
+                />
               </div>
 
               <div className="form-group-edit">
                 <label>End Time</label>
-                <input type="time" name="end_time" value={editData.end_time} onChange={handleEditChange} />
+                <input
+                  type="time"
+                  name="end_time"
+                  value={editData.end_time}
+                  onChange={handleEditChange}
+                  disabled={isEditTimeLocked}
+                />
               </div>
 
               <div className="form-group-edit">
@@ -728,7 +844,6 @@ export default function EmpList() {
                 </select>
               </div>
 
-              {/* ✅ NEW — Branch dropdown */}
               <div className="form-group-edit">
                 <label>Branch</label>
                 <select name="branch_id" value={editData.branch_id} onChange={handleEditChange}>

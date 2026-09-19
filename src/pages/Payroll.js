@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import '../styles/Payroll.css';
-import logo from "../assets/ass.jpeg";
 import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -15,6 +14,33 @@ const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
+
+/* ─────────────────────────────────────────────
+   COMPANY INFO (from localStorage)
+   Assumes the logged-in user/company object is stored
+   under localStorage key "user". Adjust the key below
+   if your app stores it under a different name
+   (e.g. "userData", "loginUser", etc).
+───────────────────────────────────────────── */
+function getCompanyInfo() {
+  const fallback = {
+    company_name: 'MPeoples Business Solutions Pvt Ltd',
+    company_address: 'Salem, Tamil Nadu, India',
+    logo: null,
+  };
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return {
+      company_name: parsed?.company_name || fallback.company_name,
+      company_address: parsed?.company_address || fallback.company_address,
+      logo: parsed?.logo || fallback.logo,
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 /* ─────────────────────────────────────────────
    AMOUNT TO WORDS
@@ -49,9 +75,10 @@ function amountToWords(amount) {
 /* ─────────────────────────────────────────────
    PAYSLIP PRINT MODAL
 ───────────────────────────────────────────── */
-function PayslipModal({ slip, employee, onClose, logoSrc }) {
+function PayslipModal({ slip, employee, onClose }) {
   const printRef = useRef();
   const [downloading, setDownloading] = useState(false);
+  const [companyInfo] = useState(() => getCompanyInfo());
 
   /* ── PDF DOWNLOAD — always renders at desktop width (780px) ── */
   const handleDownload = async () => {
@@ -102,7 +129,7 @@ function PayslipModal({ slip, employee, onClose, logoSrc }) {
 
       /* Fix logo src if it got stripped during clone */
       const logoImg = clone.querySelector('.ps-logo');
-      if (logoImg && logoSrc) logoImg.src = logoSrc;
+      if (logoImg && companyInfo.logo) logoImg.src = companyInfo.logo;
 
       document.body.appendChild(clone);
 
@@ -191,10 +218,12 @@ function PayslipModal({ slip, employee, onClose, logoSrc }) {
             {/* HEADER */}
             <div className="ps-header">
               <div className="ps-brand">
-                {logoSrc && <img src={logoSrc} alt="Logo" className="ps-logo" crossOrigin="anonymous" />}
+                {companyInfo.logo && (
+                  <img src={companyInfo.logo} alt="Logo" className="ps-logo" crossOrigin="anonymous" />
+                )}
                 <div>
-                  <div className="ps-company-name">MPeoples Business Solutions Pvt Ltd</div>
-                  <div className="ps-company-addr">Salem, Tamil Nadu, India</div>
+                  <div className="ps-company-name">{companyInfo.company_name}</div>
+                  <div className="ps-company-addr">{companyInfo.company_address}</div>
                 </div>
               </div>
               <div className="ps-title-block">
@@ -344,7 +373,7 @@ function PayslipModal({ slip, employee, onClose, logoSrc }) {
             {/* FOOTER */}
             <div className="ps-slip-footer">
               <div className="ps-footer-note">
-                <div>Payroll processed by MPeoples Business Solutions Pvt Ltd</div>
+                <div>Payroll processed by {companyInfo.company_name}</div>
                 <div className="ps-footer-conf">This is a system-generated document. No signature required.</div>
               </div>
               <div className="ps-signature-block">
@@ -652,7 +681,6 @@ function MonthlyPayroll({ employees }) {
           slip={activeSlip}
           employee={activeEmployee}
           onClose={() => { setActiveSlip(null); setActiveEmployee(null); }}
-          logoSrc={logo}
         />
       )}
     </div>
@@ -768,6 +796,118 @@ function DailyPayroll() {
 }
 
 /* ─────────────────────────────────────────────
+   WEEKLY PAYROLL TAB
+───────────────────────────────────────────── */
+function WeeklyPayroll() {
+
+  const { company_id, branch_id } = getCompanyBranch();
+
+  const [date] = useState(todayStr);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [meta, setMeta] = useState(null);
+
+  const fetchWeekly = async (d) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/salary-generate-weekly?company_id=${company_id}&branch_id=${branch_id}&date=${d}`);
+      const result = await res.json();
+      if (result.success) {
+        setData(result.data || []);
+        setMeta({
+          month: result.month,
+          year: result.year,
+          total: result.total_employees,
+          total_days: result.total_days,
+          sundays: result.sundays,
+          holidays: result.holidays,
+          week_start: result.week_start,
+          week_end: result.week_end,
+        });
+      } else {
+        setError(result.message || 'Failed to fetch weekly payroll data.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchWeekly(date); }, [date, company_id, branch_id]);
+
+  return (
+    <div className="pay-content">
+      <div className="pay-filter-row pay-filter-row--daily">
+        {meta && (
+          <span className="pay-meta-tag">
+            {meta.week_start && meta.week_end
+              ? `Week: ${meta.week_start} to ${meta.week_end}`
+              : `As of: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`}
+          </span>
+        )}
+      </div>
+
+      {loading && <div className="pay-state">Loading weekly payroll data…</div>}
+      {error && <div className="pay-state pay-state--error">{error}</div>}
+      {!loading && !error && data.length === 0 && (
+        <div className="pay-state">No records found for the current week.</div>
+      )}
+
+      {!loading && !error && data.length > 0 && (
+        <>
+          <SummaryCards data={data} meta={meta} />
+          <div className="pay-table-wrapper">
+            <table className="pay-table">
+              <thead>
+                <tr>
+                  <th className="pay-th pay-th--num">#</th>
+                  <th className="pay-th">Employee</th>
+                  <th className="pay-th">ID</th>
+                  <th className="pay-th pay-th--r">Base Salary</th>
+                  <th className="pay-th pay-th--c">Work Days</th>
+                  <th className="pay-th pay-th--c">Present</th>
+                  <th className="pay-th pay-th--c">Paid Days</th>
+                  <th className="pay-th pay-th--r">Per Day</th>
+                  <th className="pay-th pay-th--c">Late</th>
+                  <th className="pay-th pay-th--final pay-th--r">Net Pay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((emp, idx) => (
+                  <tr key={`${emp.user_id}-${idx}`}>
+                    <td className="pay-td pay-td--num">{idx + 1}</td>
+                    <td className="pay-td pay-td--bold">{emp.employee_name}</td>
+                    <td className="pay-td pay-td--mono">{emp.employee_id?.toUpperCase()}</td>
+                    <td className="pay-td pay-td--r">₹ {Number(emp.base_salary).toLocaleString()}</td>
+                    <td className="pay-td pay-td--c">{emp.working_days}</td>
+                    <td className="pay-td pay-td--c pay-td--success">{emp.present_days}</td>
+                    <td className="pay-td pay-td--c">{emp.paid_days}</td>
+                    <td className="pay-td pay-td--r">₹ {Number(emp.per_day_salary).toLocaleString()}</td>
+                    <td className="pay-td pay-td--c pay-td--muted">{emp.late_minutes}m</td>
+                    <td className="pay-td pay-td--final pay-td--r">₹ {Number(emp.final_salary).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td className="pay-td pay-tfoot-label" colSpan={9}>Total Payable</td>
+                  <td className="pay-td pay-td--final pay-td--r">
+                    ₹ {data.reduce((s, e) => s + (e.final_salary || 0), 0).toLocaleString()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
    ROOT COMPONENT
 ───────────────────────────────────────────── */
 export default function Payroll() {
@@ -800,6 +940,12 @@ export default function Payroll() {
           Daily Payroll
         </button>
         <button
+          className={`pay-tab${activeTab === 'weekly' ? ' pay-tab--active' : ''}`}
+          onClick={() => setActiveTab('weekly')}
+        >
+          Weekly Payroll
+        </button>
+        <button
           className={`pay-tab${activeTab === 'monthly' ? ' pay-tab--active' : ''}`}
           onClick={() => setActiveTab('monthly')}
         >
@@ -808,6 +954,7 @@ export default function Payroll() {
       </div>
 
       {activeTab === 'daily' && <DailyPayroll />}
+      {activeTab === 'weekly' && <WeeklyPayroll />}
       {activeTab === 'monthly' && <MonthlyPayroll employees={employees} />}
     </div>
   );

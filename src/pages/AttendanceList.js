@@ -44,7 +44,31 @@ const AttendanceList = () => {
   const [exportData, setExportData] = useState([]);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportGenerated, setExportGenerated] = useState(false);
+
+  const [shiftsList, setShiftsList] = useState([]);       // [{name, start_time, end_time}, ...]
+  const [shiftFilter, setShiftFilter] = useState('all');  // 'all' or a shift name like "Mrg"
   // ────────────────────────────────────────────────────────────────────────────
+
+
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const res = await fetch(
+          `${BASE_URL}/company/shifts?company_id=${company_id}&branch_id=${branch_id}`
+        );
+        const result = await res.json();
+        if (result.success && result.data && Array.isArray(result.data.shift)) {
+          setShiftsList(result.data.shift);
+        }
+      } catch (err) {
+        console.error('Error fetching company shifts:', err);
+      }
+    };
+
+    if (company_id && branch_id) {
+      fetchShifts();
+    }
+  }, [company_id, branch_id]);
 
   useEffect(() => {
 
@@ -56,26 +80,29 @@ const AttendanceList = () => {
 
         let url = '';
 
+        const shiftParam = shiftFilter !== 'all' ? `&shift=${encodeURIComponent(shiftFilter)}` : '';
+
         switch (userType) {
           case 'emp_present':
-            url = `${BASE_URL}/attendance-list?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
+            url = `${BASE_URL}/attendance-list?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`;
             break;
 
           case 'intern_present':
-            url = `${BASE_URL}/attendance-list-intern?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
+            url = `${BASE_URL}/attendance-list-intern?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`;
             break;
 
           case 'emp_absent':
-            url = `${BASE_URL}/attendance-List-absent?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
+            url = `${BASE_URL}/attendance-List-absent?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`;
             break;
 
           case 'intern_absent':
-            url = `${BASE_URL}/attendance-List-absentinten?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
+            url = `${BASE_URL}/attendance-List-absentinten?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`;
             break;
 
           default:
-            url = `${BASE_URL}/attendance-list?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}`;
+            url = `${BASE_URL}/attendance-list?date=${dateFilter}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`;
         }
+
         const response = await fetch(url);
 
         const result = await response.json();
@@ -101,7 +128,7 @@ const AttendanceList = () => {
       clearTimeout(timeoutId);
     };
 
-  }, [dateFilter, userType, company_id, branch_id]);
+  }, [dateFilter, userType, company_id, branch_id, shiftFilter]); // ✅ FIX — shiftFilter added so picking a shift restarts the polling loop with the new URL immediately
 
   const getReportTitle = () => {
     switch (userType) {
@@ -156,7 +183,7 @@ const AttendanceList = () => {
   const handleGenerateExport = async () => {
     setExportLoading(true);
     setExportGenerated(false);
-    
+
     try {
       const res = await fetch(
         `${BASE_URL}/attendance-List-date?start_date=${exportStartDate}&end_date=${exportEndDate}&company_id=${company_id}&branch_id=${branch_id}`
@@ -494,6 +521,22 @@ const AttendanceList = () => {
               }}
             />
           </LocalizationProvider>
+        </div>
+
+        <div className="form-group">
+          <label>Shift</label>
+          <select
+            className="shift-filter-select"
+            value={shiftFilter}
+            onChange={(e) => { setShiftFilter(e.target.value); setLoading(true); }}
+          >
+            <option value="all">All Shifts</option>
+            {shiftsList.map((s, i) => (
+              <option key={i} value={s.name}>
+                {s.name} ({s.start_time}–{s.end_time})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

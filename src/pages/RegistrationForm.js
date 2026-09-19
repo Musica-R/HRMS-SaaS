@@ -22,6 +22,7 @@ const RegistrationForm = () => {
     address: '',
     position: '',
     role_id: '',
+    shift_type: '',
     start_time: '',
     end_time: '',
     dob: '',
@@ -50,6 +51,13 @@ const RegistrationForm = () => {
 
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
+
+  const [shifts, setShifts] = useState([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+
+  /* Time fields are locked to the selected shift's default times.
+     They only unlock when "Custom" is picked (or nothing is picked yet). */
+  const isTimeLocked = formData.shift_type !== '' && formData.shift_type !== 'custom';
 
   /* ================= FETCH ROLES ================= */
 
@@ -128,6 +136,35 @@ const RegistrationForm = () => {
 
   }, [adminCompanyId, adminBranchId]);
 
+  /* ================= FETCH COMPANY SHIFTS ================= */
+
+  useEffect(() => {
+    if (adminCompanyId) {
+      const fetchShifts = async () => {
+        setLoadingShifts(true);
+        try {
+          const response = await fetch(
+            `${BASE_URL}/company/shifts?company_id=${adminCompanyId}`
+          );
+          const result = await response.json();
+
+          if (result.success) {
+            setShifts(result.data?.shift || []);
+          } else {
+            setShifts([]);
+          }
+        } catch (error) {
+          console.error('Error fetching shifts:', error);
+          setShifts([]);
+        }
+        setLoadingShifts(false);
+      };
+      fetchShifts();
+    } else {
+      setShifts([]);
+    }
+  }, [adminCompanyId]);
+
   /* ================= HANDLE INPUT ================= */
 
   const handleChange = (e) => {
@@ -137,6 +174,36 @@ const RegistrationForm = () => {
       setFormData((prev) => ({ ...prev, [name]: files[0] }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  /* ================= HANDLE SHIFT SELECT ================= */
+
+  const handleShiftChange = (e) => {
+    const { value } = e.target;
+
+    // "Custom" (or clearing the select) unlocks the time fields for manual entry
+    if (value === '' || value === 'custom') {
+      setFormData((prev) => ({
+        ...prev,
+        shift_type: value,
+        ...(value === '' ? { start_time: '', end_time: '' } : {}),
+      }));
+      return;
+    }
+
+    const selectedShift = shifts.find((s) => s.name === value);
+
+    if (selectedShift) {
+      // API gives "HH:MM"; the time inputs use step="1" so they expect "HH:MM:SS"
+      const toHms = (t) => (t && t.length === 5 ? `${t}:00` : t);
+
+      setFormData((prev) => ({
+        ...prev,
+        shift_type: value,
+        start_time: toHms(selectedShift.start_time),
+        end_time: toHms(selectedShift.end_time),
+      }));
     }
   };
 
@@ -190,6 +257,7 @@ const RegistrationForm = () => {
           address: '',
           position: '',
           role_id: '',
+          shift_type: '',
           start_time: '',
           end_time: '',
           dob: '',
@@ -358,29 +426,6 @@ const RegistrationForm = () => {
               </select>
             </div>
 
-            {/* COMPANY */}
-
-            {/* <div className="form-groups">
-              <label>Company</label>
-
-              <select
-                name="company_id"
-                value={formData.company_id}
-                onChange={handleChange}
-                required
-              >
-                <option value="">
-                  {loadingCompanies ? 'Loading...' : 'Select Company'}
-                </option>
-
-                {companies.map((comp) => (
-                  <option key={comp.id} value={comp.id}>
-                    {comp.name}
-                  </option>
-                ))}
-              </select>
-            </div> */}
-
             {/* BRANCH */}
 
             <div className="form-groups">
@@ -390,7 +435,6 @@ const RegistrationForm = () => {
                 name="branch_id"
                 value={formData.branch_id}
                 onChange={handleChange}
-                // disabled={!formData.company_id}
                 required
               >
                 <option value="">
@@ -499,6 +543,31 @@ const RegistrationForm = () => {
               />
             </div>
 
+            {/* SHIFT */}
+
+            <div className="form-groups">
+              <label>Shift</label>
+
+              <select
+                name="shift_type"
+                value={formData.shift_type}
+                onChange={handleShiftChange}
+                required
+              >
+                <option value="">
+                  {loadingShifts ? 'Loading...' : 'Select Shift'}
+                </option>
+
+                {shifts.map((shift) => (
+                  <option key={shift.name} value={shift.name}>
+                    {shift.name} ({shift.start_time} - {shift.end_time})
+                  </option>
+                ))}
+
+                {/* <option value="custom">Custom (set manually)</option> */}
+              </select>
+            </div>
+
             {/* START TIME */}
 
             <div className="form-groups">
@@ -509,6 +578,7 @@ const RegistrationForm = () => {
                 name="start_time"
                 value={formData.start_time}
                 onChange={handleChange}
+                disabled={isTimeLocked}
                 required
               />
             </div>
@@ -524,6 +594,7 @@ const RegistrationForm = () => {
                 value={formData.end_time}
                 min={formData.start_time}
                 onChange={handleChange}
+                disabled={isTimeLocked}
                 required
               />
             </div>

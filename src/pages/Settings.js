@@ -64,7 +64,7 @@ const Settings = () => {
                     <div className="settings-detail-list">
                         <div className="settings-detail-item">
                             <span className="detail-label">Name</span>
-                            <span className="detail-value">{userData?.name || 'N/A'}</span>
+                            <span className="detail-value">{userData?.company_name || 'N/A'}</span>
                         </div>
                         <div className="settings-detail-item">
                             <span className="detail-label">Email</span>

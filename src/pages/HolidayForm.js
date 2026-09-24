@@ -26,8 +26,11 @@ const MONTH_NAMES = [
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const HolidayForm = () => {
-  
-  const { company_id, branch_id } = getCompanyBranch();
+
+  // ✅ shift now comes from the shared util (companyContext), same as DashboardHome —
+  // no local dropdown here; switching the shift globally (e.g. from the topbar
+  // selector like Dashboard uses) automatically re-fetches holidays below.
+  const { company_id, branch_id, shift } = getCompanyBranch();
   const [formData, setFormData] = useState({ title: '', holiday_date: '', description: '', type: '' });
 
   const now = new Date();
@@ -58,7 +61,10 @@ const HolidayForm = () => {
     const fetchHolidays = async () => {
       try {
 
-        const response = await fetch(`${BASE_URL}/holiday/list?month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`);
+        // ✅ shift param built from the util's shift value (global), not a local dropdown
+        const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+
+        const response = await fetch(`${BASE_URL}/holiday/list?month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
         const result = await response.json();
 
         if (result.success) setHolidays(result.data);
@@ -71,7 +77,7 @@ const HolidayForm = () => {
       }
     };
     fetchHolidays();
-  }, [activeForm, deleteId, dateFilter, company_id, branch_id]);
+  }, [activeForm, deleteId, dateFilter, company_id, branch_id, shift]); // ✅ shift added — refetches automatically when the global shift changes
 
   /* ── Build holiday map keyed by day number ── */
   const holidayMap = {};
@@ -113,6 +119,7 @@ const HolidayForm = () => {
     });
     submitData.append('company_id', company_id);
     submitData.append('branch_id', branch_id);
+    if (shift) submitData.append('shift', shift);
     try {
       const response = await fetch(`${BASE_URL}/holiday/create`, { method: 'POST', body: submitData });
       const result = await response.json();
@@ -133,7 +140,8 @@ const HolidayForm = () => {
     e.preventDefault();
     try {
 
-      const response = await fetch(`${BASE_URL}/delete-Holiday/${deleteId}?company_id=${company_id}&branch_id=${branch_id}`);
+      const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+      const response = await fetch(`${BASE_URL}/delete-Holiday/${deleteId}?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const result = await response.json();
 
       if (response.ok) alert(result.message || 'Holiday Deleted successfully!');
@@ -151,6 +159,7 @@ const HolidayForm = () => {
     submitData.append('id', notificationId);
     submitData.append('company_id', company_id);
     submitData.append('branch_id', branch_id);
+    if (shift) submitData.append('shift', shift);
     try {
       const response = await fetch(`${BASE_URL}/send-holiday-notification`, { method: 'POST', body: submitData });
       const result = await response.json();
@@ -250,6 +259,13 @@ const HolidayForm = () => {
               ))}
             </select>
           </div>
+
+          {/* ✅ No local shift dropdown here — shift comes globally from
+              getCompanyBranch() (companyContext util), same source
+              DashboardHome / EmpList / AttendanceList / LeaveList /
+              PermissionList / Payroll / RaiseTicket use. Switching shift
+              elsewhere in the app automatically re-fetches this page's
+              holiday list via the useEffect dependency on `shift`. */}
         </div>
         <div className="hol-toolbar-actions">
           <button className="hol-list-btn" onClick={() => setListModal(true)}>

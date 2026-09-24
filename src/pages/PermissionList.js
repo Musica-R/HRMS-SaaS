@@ -67,7 +67,7 @@ function ReasonModal({ text, onClose }) {
 
 export default function PermissionList() {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,8 +142,10 @@ export default function PermissionList() {
       try {
         setLoading(true);
         setError(null);
-       const res = await fetch(
-          `${BASE_URL}/premissionlist?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`
+        const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+
+        const res = await fetch(
+          `${BASE_URL}/premissionlist?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`
         );
         const json = await res.json();
         if (json.success) {
@@ -159,7 +161,7 @@ export default function PermissionList() {
       }
     };
     fetchPermissions();
-  }, [dateFilter, company_id, branch_id]);
+  }, [dateFilter, company_id, branch_id, shift]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';

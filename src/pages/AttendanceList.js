@@ -20,7 +20,8 @@ const AttendanceList = () => {
 
   const navigate = useNavigate();
 
-  const { company_id, branch_id } = getCompanyBranch();
+  // ✅ shift now comes from the shared util (companyContext), same as DashboardHome / EmpList
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,30 +46,9 @@ const AttendanceList = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportGenerated, setExportGenerated] = useState(false);
 
-  const [shiftsList, setShiftsList] = useState([]);       // [{name, start_time, end_time}, ...]
-  const [shiftFilter, setShiftFilter] = useState('all');  // 'all' or a shift name like "Mrg"
+  // ✅ Local shift dropdown state/list removed — shift filtering now driven
+  // globally by getCompanyBranch()'s `shift` value (companyContext util).
   // ────────────────────────────────────────────────────────────────────────────
-
-
-  useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        const res = await fetch(
-          `${BASE_URL}/company/shifts?company_id=${company_id}&branch_id=${branch_id}`
-        );
-        const result = await res.json();
-        if (result.success && result.data && Array.isArray(result.data.shift)) {
-          setShiftsList(result.data.shift);
-        }
-      } catch (err) {
-        console.error('Error fetching company shifts:', err);
-      }
-    };
-
-    if (company_id && branch_id) {
-      fetchShifts();
-    }
-  }, [company_id, branch_id]);
 
   useEffect(() => {
 
@@ -80,7 +60,8 @@ const AttendanceList = () => {
 
         let url = '';
 
-        const shiftParam = shiftFilter !== 'all' ? `&shift=${encodeURIComponent(shiftFilter)}` : '';
+        // ✅ shift param now built from the util's shift value (global), not a local dropdown
+        const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
 
         switch (userType) {
           case 'emp_present':
@@ -128,7 +109,7 @@ const AttendanceList = () => {
       clearTimeout(timeoutId);
     };
 
-  }, [dateFilter, userType, company_id, branch_id, shiftFilter]); // ✅ FIX — shiftFilter added so picking a shift restarts the polling loop with the new URL immediately
+  }, [dateFilter, userType, company_id, branch_id, shift]); // ✅ shift (from util) replaces the old local shiftFilter — polling restarts with the new URL whenever the global shift changes
 
   const getReportTitle = () => {
     switch (userType) {
@@ -523,21 +504,10 @@ const AttendanceList = () => {
           </LocalizationProvider>
         </div>
 
-        <div className="form-group">
-          <label>Shift</label>
-          <select
-            className="shift-filter-select"
-            value={shiftFilter}
-            onChange={(e) => { setShiftFilter(e.target.value); setLoading(true); }}
-          >
-            <option value="all">All Shifts</option>
-            {shiftsList.map((s, i) => (
-              <option key={i} value={s.name}>
-                {s.name} ({s.start_time}–{s.end_time})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* ✅ Shift filter dropdown removed — shift now comes globally from
+            getCompanyBranch() (companyContext util), same source DashboardHome
+            and EmpList use. Switching shift elsewhere in the app automatically
+            re-fetches this list via the useEffect dependency on `shift`. */}
       </div>
 
       <div className="attendance-toggle">

@@ -17,11 +17,12 @@ const DELETE_URL = `${BASE_URL}/remove-user`;
 const TEAM_LIST_URL = `${BASE_URL}/teams/team-list`;
 const TEAM_BY_ID_URL = `${BASE_URL}/team-by-id`;
 const BRANCH_URL = `${BASE_URL}/get-branch-for-company`;
-const SHIFTS_URL = `${BASE_URL}/company/shifts`; // ✅ NEW — dedicated shifts endpoint
+const SHIFTS_URL = `${BASE_URL}/company/shifts`; // used for the Edit modal shift dropdown
 
 export default function EmpList() {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  // shift comes from the shared util (companyContext), same as DashboardHome
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   /* ───────── Employee lists ───────── */
   const [employees, setEmployees] = useState([]);
@@ -65,18 +66,15 @@ export default function EmpList() {
   const [branches, setBranches] = useState([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
 
-  /* ───────── Company shifts (dedicated endpoint) — used for BOTH the
-     filter dropdown and the Edit-modal shift dropdown ───────── */
+  /* ───────── Company shifts — loaded for the branch selected INSIDE the
+     Edit modal (not the sidebar branch) ───────── */
   const [companyShifts, setCompanyShifts] = useState([]);
   const [loadingShifts, setLoadingShifts] = useState(false);
-
-  /* ───────── NEW — Shift filter (like Team filter) ───────── */
-  const [shiftFilter, setShiftFilter] = useState('all');
 
   /* ═══════════════════════════════════════════
      FETCH HELPERS
   ═══════════════════════════════════════════ */
-  const shiftParam = shiftFilter !== 'all' ? `&shift=${encodeURIComponent(shiftFilter)}` : ''; // ✅ NEW
+  const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
 
   const fetchEmployees = async () => {
     try {
@@ -146,19 +144,6 @@ export default function EmpList() {
     setLoadingBranches(false);
   };
 
-  /* ✅ NEW — fetch company shifts from the dedicated endpoint */
-  const fetchCompanyShifts = async () => {
-    setLoadingShifts(true);
-    try {
-      const res = await fetch(`${SHIFTS_URL}?company_id=${company_id}&branch_id=${branch_id}`);
-      const json = await res.json();
-      if (json.success) setCompanyShifts(json.data?.shift || []);
-    } catch (err) {
-      console.log(err);
-    }
-    setLoadingShifts(false);
-  };
-
   const refreshAll = () => {
     fetchEmployees();
     fetchInactiveEmployees();
@@ -167,25 +152,16 @@ export default function EmpList() {
     if (selectedTeam !== 'all') fetchTeamById(selectedTeam);
   };
 
-  /* ───────── Initial load ───────── */
-  useEffect(() => {
-    fetchEmployees();
-    fetchInactiveEmployees();
-    fetchActiveInterns();
-    fetchInactiveInterns();
-    fetchTeamList();
-    fetchBranches();
-    fetchCompanyShifts(); // ✅ NEW
-  }, [company_id, branch_id]);
-
-  /* ✅ NEW — re-fetch the four employee lists whenever the shift filter changes */
+  /* ───────── Initial load + re-fetch on company/branch/shift change ───────── */
   useEffect(() => {
     setLoading(true);
     fetchEmployees();
     fetchInactiveEmployees();
     fetchActiveInterns();
     fetchInactiveInterns();
-  }, [shiftFilter]);
+    fetchTeamList();
+    fetchBranches();
+  }, [company_id, branch_id, shift]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -202,6 +178,57 @@ export default function EmpList() {
     fetchRoles();
   }, [company_id, branch_id]);
 
+  /* ───────── Edit modal: fetch shifts for the branch chosen in the modal ───────── */
+  const editBranchId = editData?.branch_id;
+
+  useEffect(() => {
+    // Modal closed or no branch chosen → no shifts
+    if (!editModal || !company_id || !editBranchId) {
+      setCompanyShifts([]);
+      return;
+    }
+
+    let cancelled = false; // avoids showing wrong data if branch changes quickly
+
+    const fetchEditShifts = async () => {
+      setLoadingShifts(true);
+      try {
+        const res = await fetch(`${SHIFTS_URL}?company_id=${company_id}&branch_id=${editBranchId}`);
+        const json = await res.json();
+        if (cancelled) return;
+
+        if (json.success) {
+          let shiftList = [];
+
+          if (Array.isArray(json.data)) {
+            shiftList = json.data;
+          } else if (Array.isArray(json.data?.shift)) {
+            shiftList = json.data.shift;
+          } else if (Array.isArray(json.data?.shifts)) {
+            shiftList = json.data.shifts;
+          } else {
+            console.warn('Unexpected shifts response shape:', json);
+          }
+
+          setCompanyShifts(shiftList);
+        } else {
+          setCompanyShifts([]);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.log(err);
+        setCompanyShifts([]);
+      }
+      if (!cancelled) setLoadingShifts(false);
+    };
+
+    fetchEditShifts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editModal, company_id, editBranchId]);
+
   /* ───────── Team selection change ───────── */
   const handleTeamChange = (e) => {
     const val = e.target.value;
@@ -213,11 +240,6 @@ export default function EmpList() {
     } else {
       fetchTeamById(val);
     }
-  };
-
-  /* ✅ NEW — Shift filter change */
-  const handleShiftFilterChange = (e) => {
-    setShiftFilter(e.target.value);
   };
 
   /* ═══════════════════════════════════════════
@@ -258,6 +280,7 @@ export default function EmpList() {
      EDIT
   ═══════════════════════════════════════════ */
   const openEdit = (emp) => {
+    setSaveError('');
     setEditData({
       id: emp.id,
       name: emp.name || '',
@@ -273,7 +296,8 @@ export default function EmpList() {
       experience: emp.experience || '',
       employee_status: emp.employee_status || '',
       salary: emp.salary || '',
-      shift_type: emp.shift_type || '',
+      // shift name must match the option values (shift.name)
+      shift_type: emp.shift_name || emp.shift_type || '',
       start_time: emp.start_time ? emp.start_time.slice(0, 5) : '',
       end_time: emp.end_time ? emp.end_time.slice(0, 5) : '',
 
@@ -290,9 +314,23 @@ export default function EmpList() {
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* Branch changed inside the modal → old shift/times belong to the old
+     branch, so clear them. The effect above then loads the new branch's shifts. */
+  const handleEditBranchChange = (e) => {
+    const { value } = e.target;
+    setEditData((prev) => ({
+      ...prev,
+      branch_id: value,
+      shift_type: '',
+      start_time: '',
+      end_time: '',
+    }));
+  };
+
   const handleEditShiftChange = (e) => {
     const { value } = e.target;
 
+    // "Custom" (or clearing the select) unlocks the time fields for manual entry
     if (value === '' || value === 'custom') {
       setEditData((prev) => ({
         ...prev,
@@ -305,11 +343,14 @@ export default function EmpList() {
     const selectedShift = companyShifts.find((s) => s.name === value);
 
     if (selectedShift) {
+      // the time inputs here have no step, so they expect "HH:MM"
+      const toHm = (t) => (t ? t.slice(0, 5) : '');
+
       setEditData((prev) => ({
         ...prev,
         shift_type: value,
-        start_time: selectedShift.start_time,
-        end_time: selectedShift.end_time,
+        start_time: toHm(selectedShift.start_time),
+        end_time: toHm(selectedShift.end_time),
       }));
     }
   };
@@ -562,25 +603,6 @@ export default function EmpList() {
             <FiChevronDown className="team-select-icon" />
           </div>
 
-          {/* ✅ NEW — Shift filter dropdown */}
-          <div className="team-select-wrap">
-            <select
-              className="team-select"
-              value={shiftFilter}
-              onChange={handleShiftFilterChange}
-            >
-              <option value="all">
-                {loadingShifts ? 'Loading shifts...' : 'All Shifts'}
-              </option>
-              {companyShifts.map((shift) => (
-                <option key={shift.name} value={shift.name}>
-                  {shift.name} ({shift.start_time}–{shift.end_time})
-                </option>
-              ))}
-            </select>
-            <FiChevronDown className="team-select-icon" />
-          </div>
-
           <div className="emplist-search-wrap">
             <FiSearch className="search-icon" />
             <input
@@ -741,10 +763,37 @@ export default function EmpList() {
                 <input name="address" value={editData.address} onChange={handleEditChange} placeholder="Address" />
               </div>
 
+              {/* BRANCH (placed before Shift because Shift depends on it) */}
+              <div className="form-group-edit">
+                <label>Branch</label>
+                <select name="branch_id" value={editData.branch_id} onChange={handleEditBranchChange}>
+                  <option value="">
+                    {loadingBranches ? 'Loading...' : 'Select Branch'}
+                  </option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* SHIFT (based on the branch selected above) */}
               <div className="form-group-edit">
                 <label>Shift</label>
-                <select name="shift_type" value={editData.shift_type} onChange={handleEditShiftChange}>
-                  <option value="">Select Shift</option>
+                <select
+                  name="shift_type"
+                  value={editData.shift_type}
+                  onChange={handleEditShiftChange}
+                  disabled={!editData.branch_id}
+                >
+                  <option value="">
+                    {!editData.branch_id
+                      ? 'Select Branch first'
+                      : loadingShifts
+                        ? 'Loading...'
+                        : 'Select Shift'}
+                  </option>
                   {companyShifts.map((shift) => (
                     <option key={shift.name} value={shift.name}>
                       {shift.name} ({shift.start_time} - {shift.end_time})
@@ -839,20 +888,6 @@ export default function EmpList() {
                   {roles.map((role) => (
                     <option key={role.id} value={role.id}>
                       {role.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group-edit">
-                <label>Branch</label>
-                <select name="branch_id" value={editData.branch_id} onChange={handleEditChange}>
-                  <option value="">
-                    {loadingBranches ? 'Loading...' : 'Select Branch'}
-                  </option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
                     </option>
                   ))}
                 </select>

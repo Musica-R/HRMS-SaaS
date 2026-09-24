@@ -627,6 +627,31 @@
   background: #e0e7ff;
 }
 
+.cd-shift-section { display: flex; flex-direction: column; gap: 10px; }
+.cd-shift-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+.cd-shift-remove-wrap { align-self: end; }
+.cd-btn-secondary {
+  padding: 8px 14px;
+  border: 1px solid #d0d5dd;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.cd-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* the popup gets taller with shifts, so let it scroll */
+.cd-modal { max-height: 90vh; overflow-y: auto; }
+
+@media (max-width: 640px) {
+  .cd-shift-row { grid-template-columns: 1fr 1fr; }
+}
+
 /* RESPONSIVE 1024px */
 
 @media (max-width: 1024px) {

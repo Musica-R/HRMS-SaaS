@@ -32,7 +32,7 @@ body {
 
 /* ======================== HEADER ======================== */
 .sidebar-header {
-    padding: 30px 24px;
+    padding: 10px 24px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
@@ -68,7 +68,7 @@ body {
 
 .sidebar-nav {
     flex-grow: 1;
-    padding: 24px 0;
+    padding: 14px 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -257,7 +257,7 @@ body {
 
 /* ======================== BRANCH SWITCHER ======================== */
 .branch-switcher {
-    padding: 16px 24px;
+    padding: 6px 24px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 

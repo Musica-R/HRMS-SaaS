@@ -8,16 +8,24 @@ import { GoOrganization } from 'react-icons/go';
 import { IoTicketOutline } from 'react-icons/io5';
 import { MdOutlineFolderCopy } from "react-icons/md";
 import { MdOutlineAddTask } from "react-icons/md";
-import logo from "../assets/ass.jpeg";
+import defaultLogo from "../assets/ass.jpeg"; // fallback when the company has no logo / the URL fails to load
 import { BsCurrencyDollar } from "react-icons/bs";
-import { getCompanyBranch, setCompanyBranch } from '../utils/companyContext';
+import { getCompanyBranch, setCompanyBranch, setShift } from '../utils/companyContext';
 
 const AdminLayout = () => {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const { company_id, branch_id } = getCompanyBranch();
+    const { company_id, branch_id, shift_id } = getCompanyBranch();
     const [branches, setBranches] = useState([]);
+    const [shifts, setShifts] = useState([]);
+
+    // ---- Company logo (comes from the `user.logo` URL saved in localStorage at login) ----
+    const [companyLogo, setCompanyLogo] = useState('');
+    const [logoFailed, setLogoFailed] = useState(false);
+
+    // Use the company logo when available; otherwise fall back to the bundled default.
+    const displayLogo = companyLogo && !logoFailed ? companyLogo : defaultLogo;
 
     // ---- Read logged-in user permissions from localStorage ----
     const [permissions, setPermissions] = useState({
@@ -40,6 +48,7 @@ const AdminLayout = () => {
                     notification: user.notification || 'no',
                     riseticket: user.riseticket || 'no',
                 });
+                setCompanyLogo(user.logo || '');
             }
         } catch (err) {
             console.error('Failed to parse user from localStorage', err);
@@ -57,8 +66,36 @@ const AdminLayout = () => {
             .catch(err => console.error('Failed to load branches', err));
     }, [company_id]);
 
+    // ── Fetch shifts for the selected branch ──
+    useEffect(() => {
+        if (!company_id || !branch_id) {
+            setShifts([]);
+            return;
+        }
+        const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+        fetch(`${BASE_URL}/company/shifts?company_id=${company_id}&branch_id=${branch_id}`)
+            .then(res => res.json())
+            .then(json => {
+                if (json.success) {
+                    setShifts(json.data?.shifts || []);
+                } else {
+                    setShifts([]);
+                }
+            })
+            .catch(err => {
+                console.error('Failed to load shifts', err);
+                setShifts([]);
+            });
+    }, [company_id, branch_id]);
+
     const handleBranchChange = (e) => {
         setCompanyBranch({ company_id, branch_id: e.target.value });
+    };
+
+    const handleShiftChange = (e) => {
+        const selectedName = e.target.value;
+        const matched = shifts.find(s => s.name === selectedName);
+        setShift({ shift_id: selectedName, shift: matched?.name || '' });
     };
 
     const handleLogout = () => {
@@ -78,7 +115,12 @@ const AdminLayout = () => {
                     <FiMenu />
                 </button>
                 <div className="brand-section">
-                    <img src={logo} alt="Logo" className="brand-logo" />
+                    <img
+                        src={displayLogo}
+                        alt="Logo"
+                        className="brand-logo"
+                        onError={() => setLogoFailed(true)}
+                    />
                     <h2 className="mobile-brand">Admin Panel</h2>
                 </div>
             </div>
@@ -91,7 +133,12 @@ const AdminLayout = () => {
 
                 <div className="sidebar-header">
                     <div className="brand-section">
-                        <img src={logo} alt="Logo" className="brand-logo" />
+                        <img
+                            src={displayLogo}
+                            alt="Logo"
+                            className="brand-logo"
+                            onError={() => setLogoFailed(true)}
+                        />
                         <h2>Admin Panel</h2>
                     </div>
                     <button className="sidebar-close-btn" onClick={closeSidebar}>
@@ -100,7 +147,6 @@ const AdminLayout = () => {
                 </div>
 
                 {/* Branch Switcher */}
-
                 <div className="branch-switcher">
                     <label>Branch</label>
                     <select
@@ -111,6 +157,26 @@ const AdminLayout = () => {
                         <option value="" disabled>Select Branch</option>
                         {branches.map((b) => (
                             <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Shift Switcher */}
+                <div className="branch-switcher shift-switcher">
+                    <label>Shift</label>
+                    <select
+                        className="branch-select"
+                        value={shift_id || ''}
+                        onChange={handleShiftChange}
+                        disabled={!shifts.length}
+                    >
+                        <option value="" disabled>
+                            {shifts.length ? 'Select Shift' : 'No shifts available'}
+                        </option>
+                        {shifts.map((s) => (
+                            <option key={s.name} value={s.name}>
+                                {s.name} ({s.start_time} - {s.end_time})
+                            </option>
                         ))}
                     </select>
                 </div>

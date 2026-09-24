@@ -5,44 +5,42 @@ import { getCompanyBranch } from '../utils/companyContext';
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
+const EMPTY_FORM = {
+  name: '',
+  empid: '',
+  email: '',
+  mobile: '',
+  password: '',
+  c_password: '',
+  branch_id: '',
+  address: '',
+  position: '',
+  role_id: '',
+  shift_type: '',
+  start_time: '',
+  end_time: '',
+  dob: '',
+  profileimg: null,
+
+  designation: '',
+  team_id: '',
+  employee_status: '',
+  qualification: '',
+  joining_date: '',
+  experience: '',
+  salary: '',
+};
+
 const RegistrationForm = () => {
 
   const { company_id: adminCompanyId, branch_id: adminBranchId } = getCompanyBranch();
 
   const token = localStorage.getItem('token');
 
-  const [formData, setFormData] = useState({
-    name: '',
-    empid: '',
-    email: '',
-    mobile: '',
-    password: '',
-    c_password: '',
-    branch_id: '',
-    address: '',
-    position: '',
-    role_id: '',
-    shift_type: '',
-    start_time: '',
-    end_time: '',
-    dob: '',
-    profileimg: null,
-
-    designation: '',
-    team_id: '',
-    employee_status: '',
-    qualification: '',
-    joining_date: '',
-    experience: '',
-    salary: '',
-  });
-
-
-
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const [branches, setBranches] = useState([]);
   const [roles, setRoles] = useState([]);
-
 
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
@@ -110,7 +108,7 @@ const RegistrationForm = () => {
     }
   }, [adminCompanyId]);
 
-
+  /* ================= FETCH TEAMS ================= */
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -136,34 +134,60 @@ const RegistrationForm = () => {
 
   }, [adminCompanyId, adminBranchId]);
 
-  /* ================= FETCH COMPANY SHIFTS ================= */
+  /* ================= FETCH COMPANY SHIFTS (based on form branch) ================= */
 
   useEffect(() => {
-    if (adminCompanyId) {
-      const fetchShifts = async () => {
-        setLoadingShifts(true);
-        try {
-          const response = await fetch(
-            `${BASE_URL}/company/shifts?company_id=${adminCompanyId}`
-          );
-          const result = await response.json();
+    // No branch chosen in the form → no shifts
+    if (!adminCompanyId || !formData.branch_id) {
+      setShifts([]);
+      return;
+    }
 
-          if (result.success) {
-            setShifts(result.data?.shift || []);
+    let cancelled = false; // avoids showing wrong data if the branch changes quickly
+
+    const fetchShifts = async () => {
+      setLoadingShifts(true);
+      try {
+        const response = await fetch(
+          `${BASE_URL}/company/shifts?company_id=${adminCompanyId}&branch_id=${formData.branch_id}`
+        );
+        const result = await response.json();
+        if (cancelled) return;
+
+        if (result.success) {
+          let shiftList = [];
+
+          if (Array.isArray(result.data)) {
+            shiftList = result.data;
+          } else if (Array.isArray(result.data?.shift)) {
+            shiftList = result.data.shift;
+          } else if (Array.isArray(result.data?.shifts)) {
+            shiftList = result.data.shifts;
           } else {
-            setShifts([]);
+            console.warn(
+              'Unexpected shifts response shape — expected an array at result.data, result.data.shift, or result.data.shifts:',
+              result
+            );
           }
-        } catch (error) {
-          console.error('Error fetching shifts:', error);
+
+          setShifts(shiftList);
+        } else {
           setShifts([]);
         }
-        setLoadingShifts(false);
-      };
-      fetchShifts();
-    } else {
-      setShifts([]);
-    }
-  }, [adminCompanyId]);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Error fetching shifts:', error);
+        setShifts([]);
+      }
+      if (!cancelled) setLoadingShifts(false);
+    };
+
+    fetchShifts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminCompanyId, formData.branch_id]); // depends on the FORM branch, not the sidebar branch
 
   /* ================= HANDLE INPUT ================= */
 
@@ -175,6 +199,21 @@ const RegistrationForm = () => {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
+  };
+
+  /* ================= HANDLE BRANCH SELECT ================= */
+
+  const handleBranchChange = (e) => {
+    const { value } = e.target;
+
+    // Old shift/times belong to the previous branch, so clear them
+    setFormData((prev) => ({
+      ...prev,
+      branch_id: value,
+      shift_type: '',
+      start_time: '',
+      end_time: '',
+    }));
   };
 
   /* ================= HANDLE SHIFT SELECT ================= */
@@ -233,12 +272,12 @@ const RegistrationForm = () => {
 
     try {
       const response = await fetch(`${BASE_URL}/add-user`, {
-  method: 'POST',
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-  body: submitData,
-});
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: submitData,
+      });
 
       const result = await response.json();
 
@@ -246,31 +285,7 @@ const RegistrationForm = () => {
         console.log(result);
         alert(result.message || 'User registered successfully!');
 
-        setFormData({
-          name: '',
-          empid: '',
-          email: '',
-          mobile: '',
-          password: '',
-          c_password: '',
-          branch_id: '',
-          address: '',
-          position: '',
-          role_id: '',
-          shift_type: '',
-          start_time: '',
-          end_time: '',
-          dob: '',
-          profileimg: null,
-
-          designation: '',
-          team_id: '',
-          employee_status: '',
-          qualification: '',
-          joining_date: '',
-          experience: '',
-          salary: '',
-        });
+        setFormData(EMPTY_FORM);
       } else {
         if (result.errors) {
           let errorMessages = Object.values(result.errors)
@@ -434,7 +449,7 @@ const RegistrationForm = () => {
               <select
                 name="branch_id"
                 value={formData.branch_id}
-                onChange={handleChange}
+                onChange={handleBranchChange}
                 required
               >
                 <option value="">
@@ -552,10 +567,15 @@ const RegistrationForm = () => {
                 name="shift_type"
                 value={formData.shift_type}
                 onChange={handleShiftChange}
+                disabled={!formData.branch_id}
                 required
               >
                 <option value="">
-                  {loadingShifts ? 'Loading...' : 'Select Shift'}
+                  {!formData.branch_id
+                    ? 'Select Branch first'
+                    : loadingShifts
+                    ? 'Loading...'
+                    : 'Select Shift'}
                 </option>
 
                 {shifts.map((shift) => (

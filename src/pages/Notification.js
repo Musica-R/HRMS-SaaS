@@ -13,7 +13,8 @@ const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const Notification = () => {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  // shift comes from the shared util (companyContext) — the one selected in the sidebar
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -44,8 +45,12 @@ const Notification = () => {
   useEffect(() => {
     const fetchNotification = async () => {
       try {
+        // shift param built from the sidebar shift (same pattern as EmpList)
+        const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
 
-        const response = await fetch(`${BASE_URL}/notifications?month=${month}&year=${year}&company_id=${company_id}&branch_id=${branch_id}`);
+        const response = await fetch(
+          `${BASE_URL}/notifications?month=${month}&year=${year}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`
+        );
         const result = await response.json();
 
         if (result.success) setNotification(result.data);
@@ -56,7 +61,7 @@ const Notification = () => {
       }
     };
     fetchNotification();
-  }, [activeForm, deleteId, month, year, company_id, branch_id]);
+  }, [activeForm, deleteId, month, year, company_id, branch_id, shift]);
 
   /* ================= HANDLE INPUT ================= */
   const handleChange = (e) => {
@@ -73,6 +78,10 @@ const Notification = () => {
     });
     submitData.append('company_id', company_id);
     submitData.append('branch_id', branch_id);
+
+    // send the shift selected in the sidebar
+    if (shift) submitData.append('shift', shift);
+
     try {
       const response = await fetch(`${BASE_URL}/notification/create`, { method: 'POST', body: submitData });
       const result = await response.json();

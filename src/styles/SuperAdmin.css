@@ -54,7 +54,7 @@
     transform: none;
 }
 
-/* Edit button (table row action) */
+/* Edit / View button (table row action) */
 .sa-btn-edit {
     display: inline-flex;
     align-items: center;
@@ -69,6 +69,8 @@
     border: 1px solid rgba(2, 132, 199, 0.25);
     transition: all 0.2s ease;
     font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
 }
 
 .sa-btn-edit:hover {
@@ -107,7 +109,7 @@
     margin: 2px 0 0;
 }
 
-/* ======================== EDIT MODAL ======================== */
+/* ======================== EDIT / BRANCH MODAL ======================== */
 .sa-modal-overlay {
     position: fixed;
     inset: 0;
@@ -128,6 +130,11 @@
     max-height: 90vh;
     overflow-y: auto;
     animation: sa-modal-in 0.2s ease;
+}
+
+/* Wider variant used by the branch view modal */
+.sa-modal.sa-modal-wide {
+    max-width: 760px;
 }
 
 @keyframes sa-modal-in {
@@ -155,6 +162,12 @@
     font-weight: 700;
     color: #0369a1;
     font-family: 'Outfit', sans-serif;
+}
+
+.sa-modal-subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #94a3b8;
 }
 
 .sa-modal-close {
@@ -352,7 +365,7 @@
     font-size: 14.5px;
 }
 
-/* Module-permission Yes/No badge (table cells) */
+/* Module-permission Yes/No badge (table cells) — also used for branch Active/Inactive */
 .sa-permission-badge {
     display: inline-flex;
     align-items: center;
@@ -373,7 +386,7 @@
     color: #16a34a;
 }
 
-/* Shift badges (table cell) — stacked, aligned, one shift per line */
+/* Shift badges (table cell + branch modal) — stacked, aligned, one shift per line */
 .sa-shift-badges {
     display: flex;
     flex-direction: column;
@@ -414,6 +427,95 @@
     .sa-shift-badge-name,
     .sa-shift-badge-time {
         font-size: 11.5px;
+    }
+}
+
+/* ======================== BRANCH LIST (branch view modal) ======================== */
+.sa-branch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sa-branch-card {
+    border: 1.5px solid rgba(3, 105, 161, 0.12);
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sa-branch-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.sa-branch-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.sa-branch-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    overflow-wrap: anywhere;
+}
+
+.sa-branch-meta {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 14px;
+}
+
+.sa-branch-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.sa-branch-meta-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.sa-branch-meta-value {
+    font-size: 13.5px;
+    color: #334155;
+    overflow-wrap: anywhere;
+}
+
+.sa-branch-shifts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(3, 105, 161, 0.18);
+}
+
+@media (max-width: 768px) {
+    .sa-branch-meta {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .sa-branch-card {
+        padding: 14px;
+    }
+
+    .sa-branch-meta {
+        grid-template-columns: 1fr;
     }
 }
 

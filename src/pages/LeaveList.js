@@ -85,8 +85,9 @@ function ReasonModal({ text, onClose }) {
 export default function LeaveList() {
 
   /* ───────── Company/Branch context ───────── */
-  
-  const { company_id, branch_id } = getCompanyBranch();
+  // ✅ shift now comes from the shared util (companyContext), same as
+  // DashboardHome / EmpList / AttendanceList — no local dropdown needed.
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [leaves, setLeaves] = useState([]);
   const [meta, setMeta] = useState({ month: '', total: 0 });
@@ -132,8 +133,12 @@ export default function LeaveList() {
       try {
         setLoading(true);
         setError(null);
+
+        // ✅ shift param built from the util's shift value (global), not a local dropdown
+        const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+
         const res = await fetch(
-          `${BASE_URL}/leave-list?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`
+          `${BASE_URL}/leave-list?user_id=${dateFilter.user_id}&month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`
         );
         const json = await res.json();
         if (json.success) {
@@ -149,7 +154,7 @@ export default function LeaveList() {
       }
     };
     fetchLeaves();
-  }, [dateFilter, company_id, branch_id]);
+  }, [dateFilter, company_id, branch_id, shift]); // ✅ shift added — refetches automatically when the global shift changes
 
   const updateStatus = async (leaveId, newStatus) => {
     if (updatingId) return;
@@ -270,6 +275,12 @@ export default function LeaveList() {
             ))}
           </select>
         </div>
+
+        {/* ✅ No local shift dropdown here — shift comes globally from
+            getCompanyBranch() (companyContext util), same source
+            DashboardHome / EmpList / AttendanceList use. Switching shift
+            elsewhere in the app automatically re-fetches this list via
+            the useEffect dependency on `shift`. */}
       </div>
 
       {/* ── TABS ── */}

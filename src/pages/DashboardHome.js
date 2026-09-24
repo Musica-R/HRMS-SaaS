@@ -26,8 +26,8 @@ const DashboardHome = () => {
 
     const navigate = useNavigate();
 
-    const { company_id, branch_id } = getCompanyBranch();
-    // console.log('[DashboardHome] render with', company_id, branch_id); // ADD THIS
+    const { company_id, branch_id, shift_id, shift } = getCompanyBranch();
+    // console.log('[DashboardHome] render with', company_id, branch_id, shift); // ADD THIS
 
     const [dashboardData, setDashboardData] = useState({
         total_employees: 0,
@@ -72,14 +72,15 @@ const DashboardHome = () => {
         loadAdminData();
     }, []);
 
-    // ── Fetch dashboard stats whenever company_id or branch_id changes ──
+    // ── Fetch dashboard stats whenever company_id, branch_id, or shift changes ──
     useEffect(() => {
-        const fetchDashboardData = async (companyId, branchId) => {
+        const fetchDashboardData = async (companyId, branchId, shiftName) => {
             try {
                 setLoading(true);
                 const params = new URLSearchParams();
                 if (companyId) params.append('company_id', companyId);
                 if (branchId) params.append('branch_id', branchId);
+                if (shiftName) params.append('shift', shiftName);
 
                 const response = await fetch(`${BASE_URL}/dashboard-list?${params.toString()}`);
                 const result = await response.json();
@@ -93,8 +94,8 @@ const DashboardHome = () => {
             }
         };
 
-        fetchDashboardData(company_id, branch_id);
-    }, [company_id, branch_id]); // ← re-fetches automatically on branch switch, same as HolidayForm
+        fetchDashboardData(company_id, branch_id, shift);
+    }, [company_id, branch_id, shift]); // ← re-fetches automatically on branch/shift switch, same as HolidayForm
 
     const { total_employees, present_count, absent_count, late_checkin_count } = dashboardData;
 
@@ -108,7 +109,7 @@ const DashboardHome = () => {
     const getImageUrl = (imagePath) => {
         if (!imagePath) return null;
         if (imagePath.startsWith('http')) return imagePath;
-        return `https://hrmssaas.mpdatahub.com/images/${imagePath}`;
+        return `https://clonehrmssaas.mpdatahub.com/images/${imagePath}`;
     };
 
     // ---- Today's Summary donut ----
@@ -351,40 +352,6 @@ const DashboardHome = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Bottom row */}
-
-            {/* <div className="bottom-row">
-                <div className="info-card glass-panel fade-in-up" style={{ animationDelay: '0.7s' }}>
-                    <h2><FiActivity className="info-card-icon" /> Recent Activities</h2>
-                    <div className="info-empty">
-                        <FiBriefcase size={22} />
-                        <p className="empty-title">No recent activities</p>
-                        <p className="empty-subtitle">Activities will appear here</p>
-                    </div>
-                </div>
-
-                <div className="info-card glass-panel fade-in-up" style={{ animationDelay: '0.75s' }}>
-                    <h2><FiCalendar className="info-card-icon" /> Attendance Overview</h2>
-                    <div className="info-empty">
-                        <FiCalendar size={22} />
-                        <p className="empty-title">No attendance records</p>
-                        <p className="empty-subtitle">Attendance overview will appear here</p>
-                    </div>
-                </div>
-
-                <div className="info-card glass-panel fade-in-up" style={{ animationDelay: '0.8s' }}>
-                    <div className="info-card-header">
-                        <h2><FiGift className="info-card-icon" /> Upcoming Holidays</h2>
-                        <button className="view-all-link" type="button" onClick={() => navigate('/admin/add-holiday')}>View All</button>
-                    </div>
-                    <div className="info-empty">
-                        <FiCalendar size={22} />
-                        <p className="empty-title">No upcoming holidays</p>
-                        <p className="empty-subtitle">Enjoy your day!</p>
-                    </div>
-                </div>
-            </div> */}
 
         </div>
     );

@@ -437,8 +437,8 @@ function SummaryCards({ data, period, meta }) {
    MONTHLY PAYROLL TAB
 ───────────────────────────────────────────── */
 function MonthlyPayroll({ employees }) {
-  
-  const { company_id, branch_id } = getCompanyBranch();
+
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const now = new Date();
 
@@ -460,8 +460,9 @@ function MonthlyPayroll({ employees }) {
     setList([]);
     setMode(null);
     try {
+      const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
       const res = await fetch(
-        `${BASE_URL}/salary-Slip-List?month=${Number(month)}&year=${Number(year)}&company_id=${company_id}&branch_id=${branch_id}`
+        `${BASE_URL}/salary-Slip-List?month=${Number(month)}&year=${Number(year)}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`
       );
       const result = await res.json();
       if (result.success) {
@@ -491,7 +492,7 @@ function MonthlyPayroll({ employees }) {
       const res = await fetch(`${BASE_URL}/salary-generate-month`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: Number(month), year: Number(year), company_id, branch_id }),
+        body: JSON.stringify({ month: Number(month), year: Number(year), company_id, branch_id, shift }),
       });
       const result = await res.json();
       if (result.success) {
@@ -513,7 +514,7 @@ function MonthlyPayroll({ employees }) {
       const res = await fetch(`${BASE_URL}/salary-slips`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: Number(month), year: Number(year), user_id: emp.user_id, company_id, branch_id }),
+        body: JSON.stringify({ month: Number(month), year: Number(year), user_id: emp.user_id, company_id, branch_id, shift }),
       });
       const result = await res.json();
       if (result.success && result.data?.length > 0) {
@@ -692,7 +693,7 @@ function MonthlyPayroll({ employees }) {
 ───────────────────────────────────────────── */
 function DailyPayroll() {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [date] = useState(todayStr);
   const [data, setData] = useState([]);
@@ -704,7 +705,8 @@ function DailyPayroll() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/salary-generate-day-day?date=${d}&company_id=${company_id}&branch_id=${branch_id}`);
+      const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+      const res = await fetch(`${BASE_URL}/salary-generate-day-day?date=${d}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const result = await res.json();
       if (result.success) {
         setData(result.data || []);
@@ -726,7 +728,7 @@ function DailyPayroll() {
     }
   };
 
-    useEffect(() => { fetchDaily(date); }, [date, company_id, branch_id]);
+  useEffect(() => { fetchDaily(date); }, [date, company_id, branch_id, shift]);
 
   return (
     <div className="pay-content">
@@ -800,7 +802,7 @@ function DailyPayroll() {
 ───────────────────────────────────────────── */
 function WeeklyPayroll() {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [date] = useState(todayStr);
   const [data, setData] = useState([]);
@@ -812,7 +814,9 @@ function WeeklyPayroll() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/salary-generate-weekly?company_id=${company_id}&branch_id=${branch_id}&date=${d}`);
+      const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+      const res = await fetch(`${BASE_URL}/salary-generate-weekly?company_id=${company_id}&branch_id=${branch_id}&date=${d}${shiftParam}`);
+
       const result = await res.json();
       if (result.success) {
         setData(result.data || []);
@@ -836,7 +840,7 @@ function WeeklyPayroll() {
     }
   };
 
-  useEffect(() => { fetchWeekly(date); }, [date, company_id, branch_id]);
+  useEffect(() => { fetchWeekly(date); }, [date, company_id, branch_id, shift]);
 
   return (
     <div className="pay-content">
@@ -912,19 +916,20 @@ function WeeklyPayroll() {
 ───────────────────────────────────────────── */
 export default function Payroll() {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
 
   const [activeTab, setActiveTab] = useState('daily');
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}`)
+    const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+    fetch(`${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`)
       .then(r => r.json())
       .then(res => { if (res.success) setEmployees(res.data || []); })
       .catch(() => { });
-  }, [company_id, branch_id]);
-  
+  }, [company_id, branch_id, shift]);
+
   return (
     <div className="pay-page">
       <div className="pay-header">

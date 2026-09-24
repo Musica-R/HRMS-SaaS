@@ -11,7 +11,7 @@ const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const RaiseTicket = () => {
 
-  const { company_id, branch_id } = getCompanyBranch();
+  const { company_id, branch_id, shift } = getCompanyBranch();
 
   const [formData, setFormData] = useState({
     user_id: '',
@@ -109,7 +109,8 @@ const RaiseTicket = () => {
   const fetchEmployees = async () => {
     try {
       setLoadingEmployees(true);
-      const res = await fetch(`${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}`);
+      const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
+      const res = await fetch(`${BASE_URL}/employee-List?company_id=${company_id}&branch_id=${branch_id}${shiftParam}`);
       const json = await res.json();
       if (json.success) {
         setEmployees(json.data);
@@ -125,8 +126,9 @@ const RaiseTicket = () => {
   useEffect(() => {
     const fetchRaiseTicket = async () => {
       try {
+        const shiftParam = shift ? `&shift=${encodeURIComponent(shift)}` : '';
         const response = await fetch(
-          `${BASE_URL}/tickets?month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}`
+          `${BASE_URL}/tickets?month=${dateFilter.month}&year=${dateFilter.year}&company_id=${company_id}&branch_id=${branch_id}${shiftParam}`
         );
         const result = await response.json();
         if (result.success) {
@@ -141,7 +143,7 @@ const RaiseTicket = () => {
     fetchRaiseTicket();
     fetchEmployees();
 
-  }, [activeForm, deleteId, dateFilter, updatingId, company_id, branch_id]);
+  }, [activeForm, deleteId, dateFilter, updatingId, company_id, branch_id, shift]);
 
   /* ================= HANDLE INPUT ================= */
   const handleChange = (e) => {

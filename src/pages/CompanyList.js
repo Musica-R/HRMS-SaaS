@@ -34,6 +34,7 @@ const EMPTY_SHIFT = { name: '', start_time: '', end_time: '' };
 // The API has been observed returning `shift` as null, a proper array, or
 // (in at least one record) a JSON-encoded string. Normalize all three into
 // a plain array here so the rest of the component never has to think about it.
+// This is used for BOTH company shifts and branch shifts.
 const parseShifts = (shift) => {
     if (!shift) return [];
     if (Array.isArray(shift)) return shift;
@@ -66,6 +67,35 @@ const formatTime = (time24) => {
     return `${hours}:${minutes} ${period}`;
 };
 
+// Branches come back as an array on each company, but guard against null /
+// missing just in case.
+const getBranches = (company) =>
+    company && Array.isArray(company.branches) ? company.branches : [];
+
+// Reusable shift badge list (used in the company table cell and in the
+// branch view modal).
+const ShiftBadges = ({ shifts, emptyText = 'No shifts' }) => {
+    if (!shifts.length) return <span className="sa-hint">{emptyText}</span>;
+
+    return (
+        <div
+            className="sa-shift-badges"
+            title={shifts
+                .map(s => `${s.name}: ${formatTime(s.start_time)} – ${formatTime(s.end_time)}`)
+                .join(', ')}
+        >
+            {shifts.map((s, i) => (
+                <span key={i} className="sa-shift-badge">
+                    <span className="sa-shift-badge-name">{s.name}</span>
+                    <span className="sa-shift-badge-time">
+                        {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                    </span>
+                </span>
+            ))}
+        </div>
+    );
+};
+
 const emptyEditForm = {
     company_id: '',
     company_name: '',
@@ -86,6 +116,11 @@ const CompanyList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [togglingId, setTogglingId] = useState(null); // tracks which row's status toggle is in-flight
+
+    // ---- Branch view modal state ----
+    // Store only the id and derive the company from `companies`, so the modal
+    // always shows fresh data (e.g. after a status toggle or edit).
+    const [branchCompanyId, setBranchCompanyId] = useState(null);
 
     // ---- Edit modal state ----
     const [showEditModal, setShowEditModal] = useState(false);
@@ -162,6 +197,14 @@ const CompanyList = () => {
             .catch(() => setError('Server error. Try again later.'))
             .finally(() => setTogglingId(null));
     };
+
+    // ---- Branch view modal handlers ----
+    const openBranchModal = (company) => setBranchCompanyId(company.id);
+    const closeBranchModal = () => setBranchCompanyId(null);
+
+    const branchCompany = branchCompanyId !== null
+        ? companies.find(c => c.id === branchCompanyId)
+        : null;
 
     // ---- Edit modal handlers ----
     const openEditModal = (company) => {
@@ -369,12 +412,14 @@ const CompanyList = () => {
                                     <th key={key}>{label}</th>
                                 ))}
                                 <th>Shifts</th>
+                                <th>Branches</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {companies.length > 0 ? companies.map(c => {
                                 const shifts = parseShifts(c.shift);
+                                const branches = getBranches(c);
                                 return (
                                     <tr key={c.id}>
                                         <td><span className="sa-id-badge">{c.id}</span></td>
@@ -419,24 +464,20 @@ const CompanyList = () => {
                                             </td>
                                         ))}
                                         <td>
-                                            {shifts.length > 0 ? (
-                                                <div
-                                                    className="sa-shift-badges"
-                                                    title={shifts
-                                                        .map(s => `${s.name}: ${formatTime(s.start_time)} – ${formatTime(s.end_time)}`)
-                                                        .join(', ')}
+                                            <ShiftBadges shifts={shifts} />
+                                        </td>
+                                        <td>
+                                            {branches.length > 0 ? (
+                                                <button
+                                                    type="button"
+                                                    className="sa-btn-edit"
+                                                    onClick={() => openBranchModal(c)}
+                                                    title="View branches and their shifts"
                                                 >
-                                                    {shifts.map((s, i) => (
-                                                        <span key={i} className="sa-shift-badge">
-                                                            <span className="sa-shift-badge-name">{s.name}</span>
-                                                            <span className="sa-shift-badge-time">
-                                                                {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                                                            </span>
-                                                        </span>
-                                                    ))}
-                                                </div>
+                                                    View ({branches.length})
+                                                </button>
                                             ) : (
-                                                <span className="sa-hint">No shifts</span>
+                                                <span className="sa-hint">No branches</span>
                                             )}
                                         </td>
                                         <td>
@@ -452,11 +493,102 @@ const CompanyList = () => {
                                 );
                             }) : (
                                 <tr>
-                                    <td colSpan={7 + MODULE_PERMISSIONS.length} className="sa-empty-state">No companies found.</td>
+                                    <td colSpan={8 + MODULE_PERMISSIONS.length} className="sa-empty-state">No companies found.</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* ===================================================== */}
+            {/* BRANCH VIEW MODAL (per company, with each branch's shifts) */}
+            {/* ===================================================== */}
+            {branchCompany && (
+                <div className="sa-modal-overlay" onClick={closeBranchModal}>
+                    <div className="sa-modal sa-modal-wide" onClick={(e) => e.stopPropagation()}>
+                        <div className="sa-modal-header">
+                            <div>
+                                <h3>{branchCompany.company_name} – Branches</h3>
+                                <p className="sa-modal-subtitle">
+                                    {getBranches(branchCompany).length} branch
+                                    {getBranches(branchCompany).length === 1 ? '' : 'es'}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="sa-modal-close"
+                                onClick={closeBranchModal}
+                                aria-label="Close"
+                            >
+                                &times;
+                            </button>
+                        </div>
+
+                        <div className="sa-modal-body">
+                            {getBranches(branchCompany).length > 0 ? (
+                                <div className="sa-branch-list">
+                                    {getBranches(branchCompany).map(b => (
+                                        <div key={b.id} className="sa-branch-card">
+                                            <div className="sa-branch-head">
+                                                <div className="sa-branch-title">
+                                                    <span className="sa-id-badge">{b.id}</span>
+                                                    <span className="sa-branch-name">{b.branch_name}</span>
+                                                </div>
+                                                <span
+                                                    className="sa-permission-badge"
+                                                    data-enabled={b.status === 1}
+                                                >
+                                                    {b.status === 1 ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </div>
+
+                                            <div className="sa-branch-meta">
+                                                <div className="sa-branch-meta-item">
+                                                    <span className="sa-branch-meta-label">Address</span>
+                                                    <span className="sa-branch-meta-value">{b.branch_address || '—'}</span>
+                                                </div>
+                                                <div className="sa-branch-meta-item">
+                                                    <span className="sa-branch-meta-label">Radius</span>
+                                                    <span className="sa-branch-meta-value">
+                                                        {b.meter !== null && b.meter !== undefined ? `${b.meter} m` : '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="sa-branch-meta-item">
+                                                    <span className="sa-branch-meta-label">Latitude</span>
+                                                    <span className="sa-branch-meta-value">{b.branch_lat || '—'}</span>
+                                                </div>
+                                                <div className="sa-branch-meta-item">
+                                                    <span className="sa-branch-meta-label">Longitude</span>
+                                                    <span className="sa-branch-meta-value">{b.branch_lon || '—'}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="sa-branch-shifts">
+                                                <span className="sa-branch-meta-label">Shifts</span>
+                                                <ShiftBadges
+                                                    shifts={parseShifts(b.shift)}
+                                                    emptyText="No shifts set for this branch"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="sa-empty-state">This company has no branches yet.</p>
+                            )}
+
+                            <div className="sa-modal-footer">
+                                <button
+                                    type="button"
+                                    className="sa-btn-secondary"
+                                    onClick={closeBranchModal}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

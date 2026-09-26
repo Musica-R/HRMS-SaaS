@@ -109,7 +109,7 @@ const DashboardHome = () => {
     const getImageUrl = (imagePath) => {
         if (!imagePath) return null;
         if (imagePath.startsWith('http')) return imagePath;
-        return `https://clonehrmssaas.mpdatahub.com/images/${imagePath}`;
+        return `https://hrmssaas.mpdatahub.com/images/${imagePath}`;
     };
 
     // ---- Today's Summary donut ----
